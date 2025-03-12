@@ -242,7 +242,7 @@ def stage4(input_file, output_file):
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "stage3.xlsx"
+    INPUT_FILE = "stage3_output.xlsx"
     OUTPUT_FILE = "stage4_output.xlsx"
 
     # Run stage4

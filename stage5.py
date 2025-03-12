@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -19,6 +21,8 @@ THIN_BORDER = Border(left=Side(style='thin'), right=Side(style='thin'),
                      top=Side(style='thin'), bottom=Side(style='thin'))
 
 MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+USE_FORMULAS = False
+DO_CALCULATIONS = False
 
 
 def load_and_prepare_data(input_file):
@@ -68,94 +72,238 @@ def insert_totals_and_spacing(df, split_index):
 
 
 def apply_column_sum_formulas(ws, total_rooms_row, total_camping_row, max_col):
-    """Apply Excel formulas to calculate column sums."""
-    for col in range(2, max_col + 2):
-        col_letter = ws.cell(row=1, column=col).column_letter
-        if total_rooms_row:
-            ws.cell(row=total_rooms_row, column=col).value = f"=SUM({col_letter}2:{col_letter}{total_rooms_row - 1})"
-        if total_camping_row:
-            ws.cell(row=total_camping_row, column=col).value = f"=SUM({col_letter}{total_rooms_row + 2}:{col_letter}{total_camping_row - 2})"
+    if not USE_FORMULAS:
+        return apply_column_sums_noform(ws, total_rooms_row, total_camping_row, max_col)
+
+    if DO_CALCULATIONS:
+        """Apply Excel formulas to calculate column sums."""
+        for col in range(2, max_col + 2):
+            col_letter = ws.cell(row=1, column=col).column_letter
+            if total_rooms_row:
+                ws.cell(row=total_rooms_row, column=col).value = f"=SUM({col_letter}2:{col_letter}{total_rooms_row - 1})"
+            if total_camping_row:
+                ws.cell(row=total_camping_row, column=col).value = f"=SUM({col_letter}{total_rooms_row + 2}:{col_letter}{total_camping_row - 2})"
+
+
+def apply_column_sums_noform(ws, total_rooms_row, total_camping_row, max_col):
+    """Directly calculate and insert column sums without using Excel formulas."""
+    if DO_CALCULATIONS:
+        for col in range(2, max_col + 2):
+            column_sum_rooms = 0
+            column_sum_camping = 0
+
+            # Calculate sum for rooms (from row 2 to the row before 'Total Rooms')
+            if total_rooms_row:
+                for row in range(2, total_rooms_row):
+                    value = ws.cell(row=row, column=col).value
+                    if value is None:
+                        continue
+                    if isinstance(value, (int, float)):  # Ensure it's a number
+                        column_sum_rooms += value
+                ws.cell(row=total_rooms_row, column=col).value = column_sum_rooms
+
+            # Calculate sum for camping (from the row after 'Total Rooms' to the row before 'Total Camping')
+            if total_camping_row:
+                for row in range(total_rooms_row + 2, total_camping_row):
+                    value = ws.cell(row=row, column=col).value
+                    if value is None:
+                        continue
+                    if isinstance(value, (int, float)):  # Ensure it's a number
+                        column_sum_camping += value
+                ws.cell(row=total_camping_row, column=col).value = column_sum_camping
+
 
 
 def apply_row_sum_formulas(ws, max_row, max_col, total_rooms_row, total_camping_row):
     """Apply Excel formulas to calculate row sums and percentages."""
     total_column = max_col + 1
-    separator_column_1 = total_column + 1  # First separator (before "Percent to Total")
-    percent_column = separator_column_1 + 1  # "Percent to Total" column
-    separator_column_2 = percent_column + 1  # Second separator (after "Percent to Total")
+    # separator_column_1 = total_column + 1  # First separator (before "Percent to Total")
+    # percent_column = separator_column_1 + 1  # "Percent to Total" column
+    percent_column = total_column + 1  # "Percent to Total" column
+    # separator_column_2 = percent_column + 1  # Second separator (after "Percent to Total")
+    current_year = datetime.now().year
 
     # Add the "Total" column
-    add_total_column(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row)
+    add_total_column(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row, current_year)
 
     # Add the first separator column
-    add_separator_column(ws, max_row, separator_column_1)
+    # add_separator_column(ws, max_row, separator_column_1)
 
     # Add the "Percent to Total" column
-    add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row)
+    add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, current_year)
 
     # Add the second separator column
-    add_separator_column(ws, max_row, separator_column_2)
+    # add_separator_column(ws, max_row, separator_column_2)
 
     # Add monthly sums after the second separator
-    add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row)
+    # add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row)
+    add_monthly_sums(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row)
 
 
-def add_total_column(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row):
+def add_total_column(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row, current_year):
+    if not USE_FORMULAS:
+        return add_total_column_direct_noform(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row, current_year)
+
     """Add a 'Total' column to calculate row sums."""
-    ws.cell(row=1, column=total_column).value = "Total"
+    ws.cell(row=1, column=total_column).value = f"Total {current_year}"
+    ws.cell(row=1, column=total_column).font = Font(bold=True)
+    if DO_CALCULATIONS:
+        for row in range(2, max_row + 1):
+            if row not in [total_rooms_row, total_camping_row]:
+                first_col_letter = ws.cell(row=row, column=2).column_letter
+                last_col_letter = ws.cell(row=row, column=max_col).column_letter
+                ws.cell(row=row, column=total_column).value = f"=SUM({first_col_letter}{row}:{last_col_letter}{row})"
+                ws.cell(row=row, column=total_column).fill = YELLOW_FILL
+                ws.cell(row=row, column=total_column).font = Font(bold=True)
+
+
+def add_total_column_direct_noform(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row, current_year):
+    """Directly calculate and insert row sums into the 'Total' column without using Excel formulas."""
+    ws.cell(row=1, column=total_column).value = f"Total {current_year}"
     ws.cell(row=1, column=total_column).font = Font(bold=True)
 
-    for row in range(2, max_row + 1):
-        if row not in [total_rooms_row, total_camping_row]:
-            first_col_letter = ws.cell(row=row, column=2).column_letter
-            last_col_letter = ws.cell(row=row, column=max_col).column_letter
-            ws.cell(row=row, column=total_column).value = f"=SUM({first_col_letter}{row}:{last_col_letter}{row})"
-            ws.cell(row=row, column=total_column).fill = YELLOW_FILL
-            ws.cell(row=row, column=total_column).font = Font(bold=True)
+    if DO_CALCULATIONS:
+        for row in range(2, max_row + 1):
+            if row not in [total_rooms_row, total_camping_row]:
+                row_sum = 0
+                for col in range(2, max_col + 1):  # Iterate through the data columns
+                    value = ws.cell(row=row, column=col).value
+                    if value is None:
+                        continue
+                    if isinstance(value, (int, float)):  # Ensure the value is a number
+                        row_sum += value
+                ws.cell(row=row, column=total_column).value = row_sum
+                ws.cell(row=row, column=total_column).fill = YELLOW_FILL
+                ws.cell(row=row, column=total_column).font = Font(bold=True)
 
 
-def add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row):
+def add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, current_year):
+    if not USE_FORMULAS:
+        return add_percentage_column_direct_noform(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, current_year)
+
     """Add a 'Percent to Total' column to calculate percentages."""
-    ws.cell(row=1, column=percent_column).value = "Percent to Total"
+    ws.cell(row=1, column=percent_column).value = f"Percent to Total {current_year}"
     ws.cell(row=1, column=percent_column).font = Font(bold=True)
+    if DO_CALCULATIONS:
+        for row in range(2, max_row + 1):
+            if row not in [total_rooms_row, total_camping_row]:
+                total_rooms_col_letter = ws.cell(row=total_rooms_row, column=total_column).column_letter
+                total_camping_col_letter = ws.cell(row=total_camping_row, column=total_column).column_letter
+                current_row_col_letter = ws.cell(row=row, column=total_column).column_letter
 
-    for row in range(2, max_row + 1):
-        if row not in [total_rooms_row, total_camping_row]:
-            total_rooms_col_letter = ws.cell(row=total_rooms_row, column=total_column).column_letter
-            total_camping_col_letter = ws.cell(row=total_camping_row, column=total_column).column_letter
-            current_row_col_letter = ws.cell(row=row, column=total_column).column_letter
+                if row < total_rooms_row:  # Rooms section
+                    ws.cell(row=row, column=percent_column).value = f"=IF({total_rooms_col_letter}{total_rooms_row}<>0, {current_row_col_letter}{row}/{total_rooms_col_letter}{total_rooms_row}, 0)"
+                elif row > total_rooms_row + 1:  # Camping section
+                    ws.cell(row=row, column=percent_column).value = f"=IF({total_camping_col_letter}{total_camping_row}<>0, {current_row_col_letter}{row}/{total_camping_col_letter}{total_camping_row}, 0)"
 
-            if row < total_rooms_row:  # Rooms section
-                ws.cell(row=row, column=percent_column).value = f"=IF({total_rooms_col_letter}{total_rooms_row}<>0, {current_row_col_letter}{row}/{total_rooms_col_letter}{total_rooms_row}, 0)"
-            elif row > total_rooms_row + 1:  # Camping section
-                ws.cell(row=row, column=percent_column).value = f"=IF({total_camping_col_letter}{total_camping_row}<>0, {current_row_col_letter}{row}/{total_camping_col_letter}{total_camping_row}, 0)"
-
-            ws.cell(row=row, column=percent_column).number_format = "0.00%"
+                ws.cell(row=row, column=percent_column).number_format = "0.00%"
 
     ws.column_dimensions[ws.cell(row=1, column=percent_column).column_letter].width = 15
 
 
+def add_percentage_column_direct_noform(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, current_year):
+    """Add a 'Percent to Total' column and calculate percentages directly."""
+    ws.cell(row=1, column=percent_column).value = f"Percent to Total {current_year}"
+    ws.cell(row=1, column=percent_column).font = Font(bold=True)
+
+    if DO_CALCULATIONS:
+        # Manually compute total values for rooms and camping (summing up relevant rows)
+        total_rooms_value = 0
+        total_camping_value = 0
+
+        # Sum the values for rooms and camping based on the rows you want to sum
+        for row in range(2, total_rooms_row):  # Adjust range for rooms section
+            current_value = ws.cell(row=row, column=total_column).value
+            if isinstance(current_value, (int, float)):  # Ensure it's numeric
+                total_rooms_value += current_value
+
+        for row in range(total_rooms_row + 2, max_row + 1):  # Adjust range for camping section
+            current_value = ws.cell(row=row, column=total_column).value
+            if isinstance(current_value, (int, float)):  # Ensure it's numeric
+                total_camping_value += current_value
+
+        for row in range(2, max_row + 1):
+            if row not in [total_rooms_row, total_camping_row]:
+                current_value = ws.cell(row=row, column=total_column).value
+                if isinstance(current_value, (int, float)):  # Ensure the current value is numeric
+                    if row < total_rooms_row:  # Rooms section
+                        if total_rooms_value and total_rooms_value != 0:  # Avoid division by zero
+                            percentage = current_value / total_rooms_value
+                            ws.cell(row=row, column=percent_column).value = percentage
+                        else:
+                            ws.cell(row=row, column=percent_column).value = 0
+                    elif row > total_rooms_row + 1:  # Camping section
+                        if total_camping_value and total_camping_value != 0:  # Avoid division by zero
+                            percentage = current_value / total_camping_value
+                            ws.cell(row=row, column=percent_column).value = percentage
+                        else:
+                            ws.cell(row=row, column=percent_column).value = 0
+
+                    # Format as percentage
+                    ws.cell(row=row, column=percent_column).number_format = "0.00%"
+
+    ws.column_dimensions[ws.cell(row=1, column=percent_column).column_letter].width = 15
+
+
+
 def add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row):
+    if not USE_FORMULAS:
+        return add_monthly_sums_direct_noform(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row)
+
     """Add monthly sum columns and calculate their sums."""
     month_ranges = find_monthly_column_ranges(ws, total_column)
     month_start_col = separator_column_2 + 1  # Start after the second separator
 
     for i, month in enumerate(MONTHS):
         month_col = month_start_col + i
-        ws.cell(row=1, column=month_col).value = month
+        ws.cell(row=1, column=month_col).value = f"{month} 2025"
         ws.cell(row=1, column=month_col).font = Font(bold=True)
         ws.column_dimensions[ws.cell(row=1, column=month_col).column_letter].width = 12
 
         if month in month_ranges:
             first_col_letter = ws.cell(row=1, column=month_ranges[month][0]).column_letter
             last_col_letter = ws.cell(row=1, column=month_ranges[month][1]).column_letter
-
-            for row in range(2, max_row + 1):
-                if row not in [total_rooms_row, total_camping_row]:
-                    ws.cell(row=row, column=month_col).value = f"=SUM({first_col_letter}{row}:{last_col_letter}{row})"
+            if DO_CALCULATIONS:
+                for row in range(2, max_row + 1):
+                    if row not in [total_rooms_row, total_camping_row]:
+                        ws.cell(row=row, column=month_col).value = f"=SUM({first_col_letter}{row}:{last_col_letter}{row})"
 
     # Add separator column after the last month column
-    add_separator_column(ws, max_row, month_start_col + len(MONTHS))
+    # add_separator_column(ws, max_row, month_start_col + len(MONTHS))
+
+
+def add_monthly_sums_direct_noform(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row):
+    """Directly calculate monthly sums and insert them into the columns."""
+    month_ranges = find_monthly_column_ranges(ws, total_column)
+    month_start_col = separator_column_2 + 1  # Start after the second separator
+
+
+    for i, month in enumerate(MONTHS):
+        month_col = month_start_col + i
+        ws.cell(row=1, column=month_col).value = f"{month} 2025"
+        ws.cell(row=1, column=month_col).font = Font(bold=True)
+        ws.column_dimensions[ws.cell(row=1, column=month_col).column_letter].width = 12
+
+        if DO_CALCULATIONS:
+            if month in month_ranges:
+                first_col_index = month_ranges[month][0] - 1  # Adjust for 0-based indexing
+                last_col_index = month_ranges[month][1] - 1  # Adjust for 0-based indexing
+
+                for row in range(2, max_row + 1):
+                    if row not in [total_rooms_row, total_camping_row]:
+
+                        # Sum the values in the row directly for the given month range
+                        row_sum = 0
+
+                        for col in range(first_col_index, last_col_index + 1):
+                            cell_value = ws.cell(row=row, column=col + 1).value  # Adjust for 1-based indexing
+                            if isinstance(cell_value, (int, float)):  # Check if the value is numeric
+                                row_sum += cell_value
+
+                        ws.cell(row=row, column=month_col).value = row_sum
+
+    # Add separator column after the last month column
+    # add_separator_column(ws, max_row, month_start_col + len(MONTHS))
 
 
 def find_monthly_column_ranges(ws, total_column):
@@ -240,6 +388,7 @@ def stage5(input_file, output_file):
     df = insert_totals_and_spacing(df, split_index)
     df.to_excel(output_file, index=False, engine='openpyxl')
     apply_excel_formatting_and_formulas(output_file)
+    print(f"Stage 5 completed. File saved as {output_file}")
 
 
 if __name__ == "__main__":

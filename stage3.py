@@ -109,8 +109,8 @@ def stage3(input_file, output_file):
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "stage2.xlsx"
-    OUTPUT_FILE = "stage3.xlsx"
+    INPUT_FILE = "stage2_output.xlsx"
+    OUTPUT_FILE = "stage3_output.xlsx"
 
     # Run stage3
     stage3(INPUT_FILE, OUTPUT_FILE)
