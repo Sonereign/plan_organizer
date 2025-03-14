@@ -21,7 +21,7 @@ from stage7 import stage7
 from stage8 import stage8
 from stage9 import stage9
 
-CLEANUP_OUTPUTS = True
+CLEANUP_OUTPUTS = False
 
 
 class PlanoKratiseonApp:
@@ -69,6 +69,12 @@ class PlanoKratiseonApp:
             font=("Arial", 12), bg="#4CAF50", fg="white", padx=10, pady=5
         )
         self.process_button.pack(pady=20)
+
+        # Cleanup Checkbox
+        self.cleanup_var = tk.BooleanVar(value=True)
+        self.cleanup_checkbox = tk.Checkbutton(root, text="Enable Cleanup", variable=self.cleanup_var,
+                                               command=self.toggle_cleanup)
+        self.cleanup_checkbox.pack()
 
         # Status Label
         self.status_label = tk.Label(self.root, text="", fg="blue", bg="#f0f0f0", font=("Arial", 10))
@@ -270,6 +276,16 @@ class PlanoKratiseonApp:
         self.status_label.config(text=f"Running {stage_name}...")
         self.root.update()
         stage_func(*args)
+
+    # Function to handle cleanup checkbox state
+    def toggle_cleanup(self):
+        global CLEANUP_OUTPUTS
+        if not CLEANUP_OUTPUTS:
+            CLEANUP_OUTPUTS = True
+            print("Temporary files will be removed.")
+        else:
+            CLEANUP_OUTPUTS = False
+            print("Temporary files will stay.")
 
 
 # Run the app

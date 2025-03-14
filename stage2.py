@@ -56,7 +56,7 @@ def stage2(zone_file, type_file, output_file):
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
     ZONE_FILE = "stage1_output.xlsx"
-    TYPE_FILE = "availabilityPerType.xls"
+    TYPE_FILE = "availabilityPerType2025.xls"
     OUTPUT_FILE = "stage2_output.xlsx"
 
     # Run stage2

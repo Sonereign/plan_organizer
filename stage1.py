@@ -114,7 +114,7 @@ def stage1(input_file, output_file):
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "availabilityPerZone.xls"
+    INPUT_FILE = "availabilityPerZone2025.xls"
     OUTPUT_FILE = "stage1_output.xlsx"
 
     # Run stage1

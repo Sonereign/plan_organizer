@@ -63,12 +63,19 @@ def find_camping_first_index(df):
 
 
 def insert_totals_and_spacing(df, split_index, year):
-    """Insert 'Total Rooms', 'Total Camping', and spacing rows."""
-    df.loc[split_index] = None  # Empty row between Rooms and Camping
-    df.loc[split_index - 1] = [f"Total Rooms"] + [""] * (len(df.columns) - 1)
-    df.loc[len(df)] = None  # Empty row at the end
-    df.loc[len(df) - 1] = [f"Total Camping"] + [""] * (len(df.columns) - 1)
-    return df.reset_index(drop=True)
+    """Insert 'Total Rooms' before camping section and 'Total Camping' at the end, with one empty row in between."""
+    total_rooms_row = pd.DataFrame([["Total Rooms"] + [""] * (len(df.columns) - 1)], columns=df.columns)
+    total_camping_row = pd.DataFrame([["Total Camping"] + [""] * (len(df.columns) - 1)], columns=df.columns)
+    empty_row = pd.DataFrame([[""] * len(df.columns)], columns=df.columns)
+
+    # Split the dataframe into room and camping sections
+    top_part = df.iloc[:split_index]
+    bottom_part = df.iloc[split_index:]
+
+    # Concatenate parts, ensuring correct order and no extra empty row at the end
+    df = pd.concat([top_part, total_rooms_row, empty_row, bottom_part, total_camping_row], ignore_index=True)
+
+    return df
 
 
 def apply_column_sum_formulas(ws, total_rooms_row, total_camping_row, max_col):
@@ -95,25 +102,14 @@ def apply_column_sum_formulas(ws, total_rooms_row, total_camping_row, max_col):
 def apply_row_sum_formulas(ws, max_row, max_col, total_rooms_row, total_camping_row, year):
     """Apply Excel formulas to calculate row sums and percentages."""
     total_column = max_col + 1
-    # separator_column_1 = total_column + 1  # First separator (before "Percent to Total")
-    # percent_column = separator_column_1 + 1  # "Percent to Total" column
     percent_column = total_column + 1  # "Percent to Total" column
-    # separator_column_2 = percent_column + 1  # Second separator (after "Percent to Total")
 
     # Add the "Total" column
     add_total_column(ws, max_row, max_col, total_column, total_rooms_row, total_camping_row, year=year)
 
-    # Add the first separator column
-    # add_separator_column(ws, max_row, separator_column_1)
-
     # Add the "Percent to Total" column
-    add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, year=year)
+    # add_percentage_column(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, year=year)
 
-    # Add the second separator column
-    # add_separator_column(ws, max_row, separator_column_2)
-
-    # Add monthly sums after the second separator
-    # add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_row, total_camping_row)
     add_monthly_sums(ws, max_row, total_column, percent_column, total_rooms_row, total_camping_row, year=year)
 
 
@@ -185,9 +181,6 @@ def add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_
                     monthly_sum = sum(values)
 
                     ws.cell(row=row, column=month_col).value = monthly_sum
-
-    # Add separator column after the last month column
-    # add_separator_column(ws, max_row, month_start_col + len(MONTHS))
 
 
 def find_monthly_column_ranges(ws, total_column):

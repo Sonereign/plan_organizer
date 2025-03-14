@@ -63,12 +63,19 @@ def find_camping_first_index(df):
 
 
 def insert_totals_and_spacing(df, split_index):
-    """Insert 'Total Rooms', 'Total Camping', and spacing rows."""
-    df.loc[split_index] = None  # Empty row between Rooms and Camping
-    df.loc[split_index - 1] = ["Total Rooms"] + [""] * (len(df.columns) - 1)
-    df.loc[len(df)] = None  # Empty row at the end
-    df.loc[len(df) - 1] = ["Total Camping"] + [""] * (len(df.columns) - 1)
-    return df.reset_index(drop=True)
+    """Insert 'Total Rooms' before camping section and 'Total Camping' at the end, with one empty row in between."""
+    total_rooms_row = pd.DataFrame([["Total Rooms"] + [""] * (len(df.columns) - 1)], columns=df.columns)
+    total_camping_row = pd.DataFrame([["Total Camping"] + [""] * (len(df.columns) - 1)], columns=df.columns)
+    empty_row = pd.DataFrame([[""] * len(df.columns)], columns=df.columns)
+
+    # Split the dataframe into room and camping sections
+    top_part = df.iloc[:split_index]
+    bottom_part = df.iloc[split_index:]
+
+    # Concatenate parts, ensuring correct order and no extra empty row at the end
+    df = pd.concat([top_part, total_rooms_row, empty_row, bottom_part, total_camping_row], ignore_index=True)
+
+    return df
 
 
 def apply_column_sum_formulas(ws, total_rooms_row, total_camping_row, max_col):
@@ -393,7 +400,7 @@ def stage5(input_file, output_file):
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "availabilityPerNationality.xls"
+    INPUT_FILE = "availabilityPerNationality2025.xls"
     OUTPUT_FILE = "stage5_output.xlsx"
 
     # Run stage5
