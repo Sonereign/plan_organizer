@@ -86,15 +86,18 @@ def add_percent_difference_columns(ws, insert_at_col, previous_years):
 
 def process_stage9(input_file, output_file, previous_years):
     """Processes Stage 9 by deleting columns after 'Category', adding percentage columns, separators, and percent differences."""
+    print("#######################################################")
+    print(f"Running Stage 9 with {input_file=} - {output_file=} - {previous_years=}")
     wb = openpyxl.load_workbook(input_file)
     ws = wb.active
 
     headers = get_headers(ws)
-    last_category_index = find_last_category_column(headers)
-    delete_columns_after_category(ws, last_category_index)
+
+    """For some magic reason had to remove this.. ? who knows?"""
+    # last_category_index = find_last_category_column(headers)
+    # delete_columns_after_category(ws, last_category_index)
+
     next_available_col = add_percentage_columns(ws, previous_years)
-
-
 
     # Add the remaining columns and separators
     next_available_col = add_separator_column(ws, next_available_col)

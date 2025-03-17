@@ -99,6 +99,8 @@ def stage1(input_file, output_file):
     """
     Process the input file (availabilityPerZone) and save the result to the output file.
     """
+    print("#######################################################")
+    print(f"Running Stage 1 with {input_file=} ....")
     df = load_data(input_file)
     first_date_col, last_date_col = detect_date_columns(df)
 
@@ -110,6 +112,7 @@ def stage1(input_file, output_file):
     apply_day_colors(output_file)
 
     print(f"Stage 1 completed. File saved as {output_file}")
+    print("#######################################################")
 
 
 if __name__ == "__main__":

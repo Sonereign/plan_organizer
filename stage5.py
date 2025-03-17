@@ -389,6 +389,8 @@ def apply_excel_formatting_and_formulas(output_file):
 
 def stage5(input_file, output_file):
     """Process reservations and generate the output Excel file."""
+    print("#######################################################")
+    print(f"Running Stage 5 with {input_file=} .....")
     df, headers = load_and_prepare_data(input_file)
     df = format_dates(df)
     split_index = find_camping_first_index(df)
@@ -396,6 +398,7 @@ def stage5(input_file, output_file):
     df.to_excel(output_file, index=False, engine='openpyxl')
     apply_excel_formatting_and_formulas(output_file)
     print(f"Stage 5 completed. File saved as {output_file}")
+    print("#######################################################")
 
 
 if __name__ == "__main__":

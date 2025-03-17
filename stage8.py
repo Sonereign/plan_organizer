@@ -24,7 +24,7 @@ def identify_date_columns(headers, current_year):
             extract_date(h) and extract_date(h).year == current_year]
 
 
-def insert_empty_columns(ws, date_columns, number_of_previous_year_data):
+def insert_empty_columns_for_months_prev_years(ws, date_columns, number_of_previous_year_data):
     """Inserts empty columns after each identified date column."""
     for offset, (col, header, _) in enumerate(date_columns):
         insert_col = col + offset * number_of_previous_year_data + 1
@@ -32,7 +32,7 @@ def insert_empty_columns(ws, date_columns, number_of_previous_year_data):
             ws.insert_cols(insert_col)
 
 
-def move_previous_years_data(ws, number_of_previous_year_data, current_year):
+def move_previous_years_months_sums(ws, number_of_previous_year_data, current_year):
     """Moves previous years' data into the created empty columns and deletes the original columns."""
     headers = get_headers(ws)
 
@@ -58,7 +58,7 @@ def move_previous_years_data(ws, number_of_previous_year_data, current_year):
             headers = get_headers(ws)
 
 
-def find_total_columns(ws):
+def find_total_column_from_first_prev_year(ws):
     """Finds all 'Total YYYY' columns after the second occurrence of 'Category'."""
     category_count = 0
     total_columns = []
@@ -72,7 +72,7 @@ def find_total_columns(ws):
     return total_columns
 
 
-def insert_total_columns(ws, total_columns, number_of_previous_year_data, current_year, previous_years):
+def insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year, previous_years):
     """Repositions existing 'Total YYYY' columns instead of inserting new ones."""
     if not total_columns:
         return
@@ -106,7 +106,7 @@ def insert_total_columns(ws, total_columns, number_of_previous_year_data, curren
 
 
 
-def drop_total_current_year_column(ws, current_year):
+def drop_total_current_year_column_first_occurance(ws, current_year):
     """Drops the first occurrence of the column with header 'Total current_year'."""
     headers = get_headers(ws)
     total_header = f"Total {current_year}"
@@ -126,11 +126,11 @@ def process_stage8(stage7_file, output_file, number_of_previous_year_data, previ
 
     headers = get_headers(ws)
     date_columns = identify_date_columns(headers, current_year)
-    insert_empty_columns(ws, date_columns, number_of_previous_year_data)
-    move_previous_years_data(ws, number_of_previous_year_data, current_year)
-    total_columns = find_total_columns(ws)
-    insert_total_columns(ws, total_columns, number_of_previous_year_data, current_year, previous_years)
-    drop_total_current_year_column(ws, current_year)
+    insert_empty_columns_for_months_prev_years(ws, date_columns, number_of_previous_year_data)
+    move_previous_years_months_sums(ws, number_of_previous_year_data, current_year)
+    total_columns = find_total_column_from_first_prev_year(ws)
+    insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year, previous_years)
+    drop_total_current_year_column_first_occurance(ws, current_year)
 
     wb.save(output_file)
 

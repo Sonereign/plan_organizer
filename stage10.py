@@ -183,7 +183,7 @@ def insert_total_room_camping_sums(ws, total_column, total_row):
 
         # Skip column if first row cell is empty
         if ws.cell(row=1, column=col).value is None:
-            print(f"[DEBUG] Skipping column {col_letter} because first row is empty.")
+            # print(f"[DEBUG] Skipping column {col_letter} because first row is empty.")
             continue
 
         sum_formula = "=SUM("

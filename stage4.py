@@ -147,6 +147,8 @@ def stage4(input_file, output_file):
     """
     Process the input file (output of stage3) and save the result to the output file.
     """
+    print("#######################################################")
+    print(f"Running Stage 4 with {input_file=}")
     # Load the Excel file
     df = pd.read_excel(input_file, sheet_name='Sheet1', header=None)
 
@@ -238,6 +240,7 @@ def stage4(input_file, output_file):
         worksheet.freeze_panes = "C2"
 
     print(f"Stage 4 completed. File saved as {output_file}")
+    print("#######################################################")
 
 
 if __name__ == "__main__":

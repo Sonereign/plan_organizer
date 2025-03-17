@@ -182,7 +182,7 @@ class PlanoKratiseonApp:
             sheet2_name = "εθνικότητες"
 
             if not stage6_output_filenames:
-                # Create final output by combining sheets from stage4 and stage10 outputs
+                # Create final output by combining sheets from stage4 and stage5 outputs
                 self.combine_sheets(stage4_output, stage5_output, final_output, sheet1_name, sheet2_name)
             else:
                 # Create final output by combining sheets from stage4 and stage10 outputs
@@ -273,9 +273,12 @@ class PlanoKratiseonApp:
 
     def run_stage(self, stage_func, *args, stage_name=""):
         """Helper method to run a stage and update the status."""
-        self.status_label.config(text=f"Running {stage_name}...")
-        self.root.update()
-        stage_func(*args)
+        try:
+            self.status_label.config(text=f"Running {stage_name}...")
+            self.root.update()
+            stage_func(*args)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error in {stage_name}: {e}")
 
     # Function to handle cleanup checkbox state
     def toggle_cleanup(self):
