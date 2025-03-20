@@ -1,7 +1,9 @@
+from datetime import datetime
+
 import pandas as pd
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Font, Border, Side
-from openpyxl import Workbook
+from logger import logger
 
 # Hardcoded capacities for accommodations
 ACCOMMODATION_CAPACITIES = {
@@ -46,23 +48,29 @@ THIN_BORDER = Border(left=Side(style='thin'), right=Side(style='thin'),
 
 def detect_groups(df):
     """Detect groups based on empty rows."""
+    logger.debug(f'Detecting groups..')
     groups = []
     current_group = {"start_row": None, "types": []}
+    group_names = ["Accommodations", "Youth Hostels", "Camping"]
 
     # Start from row 2 (index 1) to skip the header
+    group_index = 0
     for index, row in df.iloc[1:].iterrows():
         # Check if the row is empty (all values are NaN)
         if row.isnull().all():
             # If a group has been started, finalize it
             if current_group["start_row"] is not None:
                 current_group["end_row"] = index + 1  # Excel rows are 1-based
+                current_group["name"] = group_names[group_index]
                 groups.append(current_group)
                 current_group = {"start_row": None, "types": []}
+                group_index += 1
         else:
             # If no group has been started, start a new one
             if current_group["start_row"] is None:
                 current_group["start_row"] = index + 1  # Excel rows are 1-based
             # Add the accommodation type (first column value)
+            current_group["name"] = group_names[group_index]
             current_group["types"].append(row[0])
 
     # Add the last group if it exists
@@ -73,13 +81,13 @@ def detect_groups(df):
     return groups
 
 
-def add_totals_and_occupancy_rows(df, group, is_last_group=False):
+def add_totals_and_occupancy_rows(df, group, year, is_last_group=False):
     """Add 'Totals' and 'Πληρότητα' rows with Excel formulas."""
     start_row = group["start_row"] - 1  # Convert to 0-based index
     end_row = group["end_row"] - 1  # Convert to 0-based index
 
     # Create a "Totals" row
-    totals_row = ["Totals", ""]  # Initialize with "Totals" and empty capacity
+    totals_row = [f"Totals {group['name']} {year}", ""]  # Initialize with "Totals" and empty capacity
 
     # Add SUM formula for the Capacity column (column B)
     capacity_col_letter = get_column_letter(2)  # Column B
@@ -114,7 +122,7 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
     df = df.sort_index().reset_index(drop=True)
 
     # Add a "Πληρότητα" row after the "Totals" row
-    occupancy_row = ["Πληρότητα", ""]  # Initialize with "Πληρότητα" and empty capacity
+    occupancy_row = [f"Πληρότητα {group['name']} {year}", ""]  # Initialize with "Πληρότητα" and empty capacity
 
     # Add occupancy percentage formulas for each day's column
     for col_index in range(2, len(df.columns)):
@@ -143,22 +151,29 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
     return df
 
 
-def stage4(input_file, output_file):
+
+def per_zone_per_type_stage4(input_file, output_file):
     """
     Process the input file (output of stage3) and save the result to the output file.
     """
     print("#######################################################")
     print(f"Running Stage 4 with {input_file=}")
+
+    logger.info(f"Loading Excel file: {input_file}")
     # Load the Excel file
     df = pd.read_excel(input_file, sheet_name='Sheet1', header=None)
+    logger.debug(f"Excel file {input_file} loaded successfully with shape {df.shape}")
 
     # Detect groups dynamically
+    logger.info("Detecting groups in the dataframe")
     groups = detect_groups(df)
+    logger.debug(f"Detected groups: {groups}")
+    current_year = datetime.now().year
 
     # Add "Totals" and "Πληρότητα" rows for each group
     for i, group in enumerate(groups):
         is_last_group = (i == len(groups) - 1)  # Check if this is the last group
-        df = add_totals_and_occupancy_rows(df, group, is_last_group)
+        df = add_totals_and_occupancy_rows(df, group, current_year, is_last_group)
         # Recalculate row numbers for subsequent groups
         for j in range(i + 1, len(groups)):
             groups[j]["start_row"] += 2  # Adjust for both "Totals" and "Πληρότητα" rows
@@ -195,6 +210,7 @@ def stage4(input_file, output_file):
         worksheet.column_dimensions['A'].width = 22
 
         # Define styles
+        logger.info("Applying styles to the worksheet")
         yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
         light_green_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
         header_fill = PatternFill(start_color="ADD8E6", end_color="ADD8E6", fill_type="solid")  # Light blue for headers
@@ -238,15 +254,14 @@ def stage4(input_file, output_file):
 
         # Freeze pane at B2
         worksheet.freeze_panes = "C2"
+        logger.info("Styles applied successfully")
 
-    print(f"Stage 4 completed. File saved as {output_file}")
-    print("#######################################################")
+    logger.info(f"Stage 4 completed successfully. File saved as {output_file}")
 
 
 if __name__ == "__main__":
-    # Default file paths (for standalone execution)
-    INPUT_FILE = "stage3_output.xlsx"
-    OUTPUT_FILE = "stage4_output.xlsx"
+    INPUT_FILE = "zone_stage3_output.xlsx"
+    OUTPUT_FILE = "zone_stage4_output.xlsx"
 
     # Run stage4
-    stage4(INPUT_FILE, OUTPUT_FILE)
+    per_zone_per_type_stage4(INPUT_FILE, OUTPUT_FILE)

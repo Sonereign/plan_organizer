@@ -1,0 +1,159 @@
+import openpyxl
+from openpyxl.styles import PatternFill, Font, Border, Alignment
+from logger import logger
+
+
+def load_stage5_data(stage5_file):
+    try:
+        logger.info(f"Loading Stage 5 data from {stage5_file}")
+        wb5 = openpyxl.load_workbook(stage5_file)
+        ws5 = wb5.active
+        countries_stage5 = {ws5.cell(row=row, column=1).value: row for row in range(2, ws5.max_row + 1) if
+                            ws5.cell(row=row, column=1).value}
+        empty_row = next((row for row in range(2, ws5.max_row + 1) if ws5.cell(row=row, column=1).value is None), None)
+
+        if empty_row:
+            for col in range(1, ws5.max_column + 1):
+                ws5.cell(row=empty_row, column=col, value="sep_row")
+
+        header = [ws5.cell(row=1, column=col).value for col in range(1, ws5.max_column + 1)]
+        logger.info("Successfully loaded Stage 5 data")
+        return wb5, ws5, countries_stage5, empty_row, header
+    except Exception as e:
+        logger.exception(F"Error loading Stage 5 data {e}")
+        raise
+
+
+def insert_separator_column(ws5, max_col):
+    try:
+        logger.debug("Inserting separator column")
+        max_col += 1
+        for row in range(1, ws5.max_row + 1):
+            ws5.cell(row=row, column=max_col).fill = PatternFill(start_color="000000", end_color="000000",
+                                                                 fill_type="solid")
+        return max_col
+    except Exception as e:
+        logger.exception(f"Error inserting separator column {e}")
+        raise
+
+
+def insert_country_row(ws5, country, countries_stage5, empty_row):
+    try:
+        logger.debug(f"Inserting country row for {country}")
+        target_row = None
+        sorted_countries = sorted((c, r) for c, r in countries_stage5.items() if c is not None)
+
+        for existing_country, row in sorted_countries:
+            if row == empty_row:
+                continue
+            if existing_country is not None and country < existing_country:
+                target_row = row
+                break
+
+        if target_row is None:
+            target_row = ws5.max_row + 1
+
+        ws5.insert_rows(target_row)
+        ws5.cell(row=target_row, column=1, value=country)
+
+        countries_stage5.clear()
+        for row in range(2, ws5.max_row + 1):
+            cell_value = ws5.cell(row=row, column=1).value
+            if cell_value:
+                countries_stage5[cell_value] = row
+        return target_row
+    except Exception as e:
+        logger.exception(f"Error inserting country row for {country} {e}")
+        raise
+
+
+def copy_cell_styles(source_cell, target_cell):
+    try:
+        if source_cell.font:
+            target_cell.font = Font(
+                name=source_cell.font.name, size=source_cell.font.size, bold=source_cell.font.bold,
+                italic=source_cell.font.italic, underline=source_cell.font.underline, color=source_cell.font.color
+            )
+        if source_cell.fill:
+            target_cell.fill = PatternFill(
+                start_color=source_cell.fill.start_color.rgb, end_color=source_cell.fill.end_color.rgb,
+                fill_type=source_cell.fill.fill_type
+            )
+        if source_cell.border:
+            target_cell.border = Border(
+                left=source_cell.border.left, right=source_cell.border.right,
+                top=source_cell.border.top, bottom=source_cell.border.bottom
+            )
+        if source_cell.alignment:
+            target_cell.alignment = Alignment(
+                horizontal=source_cell.alignment.horizontal, vertical=source_cell.alignment.vertical,
+                wrap_text=source_cell.alignment.wrap_text
+            )
+        target_cell.number_format = source_cell.number_format
+    except Exception as e:
+        logger.exception(f"Error copying cell styles")
+        raise
+
+
+def append_stage6_to_stage5(stage5_file, stage6_files, output_file):
+    try:
+        logger.info("Appending Stage 6 data to Stage 5")
+        wb5, ws5, countries_stage5, empty_row, header_stage5 = load_stage5_data(stage5_file)
+        max_col = ws5.max_column
+
+        for index, stage6_file in enumerate(stage6_files):
+            logger.info(f"Processing Stage 6 file: {stage6_file}")
+            wb6 = openpyxl.load_workbook(stage6_file)
+            ws6 = wb6.active
+
+            header_stage6 = [ws6.cell(row=1, column=col).value for col in range(1, ws6.max_column + 1)]
+            for col, header_value in enumerate(header_stage6, start=max_col + 2):
+                ws5.cell(row=1, column=col, value=header_value)
+
+            max_col = insert_separator_column(ws5, max_col)
+            start_col = max_col + 1
+
+            for row in range(2, ws6.max_row + 1):
+                country = ws6.cell(row=row, column=1).value
+                if country is None:
+                    continue
+
+                target_row = countries_stage5.get(country) or insert_country_row(ws5, country, countries_stage5,
+                                                                                 empty_row)
+
+                for col in range(1, ws6.max_column + 1):
+                    source_cell = ws6.cell(row=row, column=col)
+                    target_cell = ws5.cell(row=target_row, column=start_col + (col - 1))
+                    target_cell.value = source_cell.value
+                    copy_cell_styles(source_cell, target_cell)
+                    ws5.column_dimensions[openpyxl.utils.get_column_letter(start_col + (col - 1))].width = \
+                        ws6.column_dimensions.get(openpyxl.utils.get_column_letter(col),
+                                                  ws5.column_dimensions[
+                                                      openpyxl.utils.get_column_letter(start_col + (col - 1))]).width
+
+            countries_stage5.clear()
+            for row in range(2, ws5.max_row + 1):
+                cell_value = ws5.cell(row=row, column=1).value
+                if cell_value:
+                    countries_stage5[cell_value] = row
+            max_col = ws5.max_column
+
+        wb5.save(output_file)
+        logger.info(f"Successfully saved output to {output_file}")
+    except Exception as e:
+        logger.exception("Error appending Stage 6 data to Stage 5")
+        raise
+
+
+def per_nationality_stage3(stage5_path, stage6_paths, output_path):
+    logger.info(f'Starting with stage 7')
+    append_stage6_to_stage5(stage5_path, stage6_paths, output_path)
+    logger.info(f'Stage 7 completed. File saved as {output_path}')
+
+
+if __name__ == '__main__':
+    stage5_path = "nat_stage1_output.xlsx"
+    stage6_paths = ["nat_stage2_output_2024.xlsx", "nat_stage2_output_2023.xlsx",]  # Add all Stage 6 files here
+    output_path = "nat_stage3_output.xlsx"
+
+    append_stage6_to_stage5(stage5_path, stage6_paths, output_path)

@@ -1,5 +1,8 @@
 import tkinter as tk
 import threading
+from datetime import datetime
+from logger import logger  # Import the global logger
+
 from file_handler import select_file
 from processing import process_files
 
@@ -15,9 +18,11 @@ class PlanoKratiseonApp:
         self.availability_per_zone_path = None
         self.availability_per_type_path = None
         self.availability_per_nationality_path = None
-        self.previous_years_paths = {}
+        self.previous_years_nationality_paths = {}
+        self.previous_years_zone_paths = {}
 
         self.create_widgets()
+        logger.info("Application UI initialized.")
 
     def create_widgets(self):
         title_label = tk.Label(self.root, text="Πλάνο Κρατήσεων", font=("Arial", 18, "bold"), bg="#f0f0f0")
@@ -26,19 +31,37 @@ class PlanoKratiseonApp:
         file_frame = tk.Frame(self.root, bg="#f0f0f0")
         file_frame.pack(pady=10, fill="x", padx=20)
 
-        self.availability_per_zone_text = self.create_file_section(file_frame, "Availability Per Zone")
-        self.availability_per_type_text = self.create_file_section(file_frame, "Availability Per Type")
+        zone_frame = tk.LabelFrame(file_frame, text="Availability Per Zone & Previous Years",
+                                   font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
+        zone_frame.pack(fill="x", pady=10)
+
+        self.availability_per_zone_text = self.create_file_section(zone_frame, "Availability per Zone Current Year")
+        self.previous_years_zone_frame = tk.Frame(zone_frame, bg="#f0f0f0")
+        self.previous_years_zone_frame.pack(fill="x", pady=5)
+
+        add_zone_year_button = tk.Button(
+            zone_frame, text="+ Add Year", command=self.add_previous_year_per_zone,
+            font=("Arial", 10), bg="#008CBA", fg="white"
+        )
+        add_zone_year_button.pack(pady=5)
+
+        type_frame = tk.LabelFrame(file_frame, text="Availability Per Type",
+                                   font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
+        type_frame.pack(fill="x", pady=10)
+
+        self.availability_per_type_text = self.create_file_section(type_frame, "Availability per Type Current Year")
 
         nationality_frame = tk.LabelFrame(file_frame, text="Availability Per Nationality & Previous Years",
                                           font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
         nationality_frame.pack(fill="x", pady=10)
 
-        self.availability_per_nationality_text = self.create_file_section(nationality_frame, "Current Year")
-        self.previous_years_frame = tk.Frame(nationality_frame, bg="#f0f0f0")
-        self.previous_years_frame.pack(fill="x", pady=5)
+        self.availability_per_nationality_text = self.create_file_section(nationality_frame,
+                                                                          "Availability per Nationality Current Year")
+        self.previous_years_nationality_frame = tk.Frame(nationality_frame, bg="#f0f0f0")
+        self.previous_years_nationality_frame.pack(fill="x", pady=5)
 
         add_year_button = tk.Button(
-            nationality_frame, text="+ Add Year", command=self.add_previous_year,
+            nationality_frame, text="+ Add Year", command=self.add_previous_year_per_nationality,
             font=("Arial", 10), bg="#008CBA", fg="white"
         )
         add_year_button.pack(pady=5)
@@ -54,8 +77,19 @@ class PlanoKratiseonApp:
                                                command=self.toggle_cleanup)
         self.cleanup_checkbox.pack()
 
+        self.load_logo()
+
         self.status_label = tk.Label(self.root, text="", fg="blue", bg="#f0f0f0", font=("Arial", 10))
         self.status_label.pack(pady=10)
+
+    def load_logo(self):
+        try:
+            self.logo_image = tk.PhotoImage(file="logo.png")  # Only supports PNG
+            self.logo_label = tk.Label(self.root, image=self.logo_image, bg="#f0f0f0")
+            self.logo_label.pack(pady=10)
+            logger.info("Logo loaded successfully.")
+        except Exception as e:
+            logger.error(f"Error loading logo: {e}")
 
     def create_file_section(self, parent, label_text):
         frame = tk.Frame(parent, bg="#f0f0f0")
@@ -75,9 +109,10 @@ class PlanoKratiseonApp:
 
         return text_widget
 
-    def add_previous_year(self):
-        year = 2024 - len(self.previous_years_paths)
-        frame = tk.Frame(self.previous_years_frame, bg="#f0f0f0")
+    def add_previous_year_per_zone(self):
+        current_year = datetime.now().year
+        year = current_year - 1 - len(self.previous_years_zone_paths)
+        frame = tk.Frame(self.previous_years_zone_frame, bg="#f0f0f0")
         frame.pack(fill="x", pady=2)
 
         label = tk.Label(frame, text=f"Year {year}", font=("Arial", 12), bg="#f0f0f0")
@@ -87,22 +122,48 @@ class PlanoKratiseonApp:
         text_widget.pack(side="left", padx=5, pady=5)
 
         button = tk.Button(
-            frame, text="Browse", command=lambda: select_file(f"Year {year}", text_widget, self),
+            frame, text="Browse", command=lambda: select_file(f"Availability per Zone Year {year}", text_widget, self),
             font=("Arial", 10), bg="#008CBA", fg="white"
         )
         button.pack(side="right", padx=5)
 
-        self.previous_years_paths[year] = text_widget
+        self.previous_years_zone_paths[year] = text_widget
+        logger.info(f"Added input field for previous zone year: {year}")
+
+    def add_previous_year_per_nationality(self):
+        current_year = datetime.now().year
+        year = current_year - 1 - len(self.previous_years_nationality_paths)
+        frame = tk.Frame(self.previous_years_nationality_frame, bg="#f0f0f0")
+        frame.pack(fill="x", pady=2)
+
+        label = tk.Label(frame, text=f"Year {year}", font=("Arial", 12), bg="#f0f0f0")
+        label.pack(side="left", padx=5)
+
+        text_widget = tk.Entry(frame, width=35, font=("Arial", 10))
+        text_widget.pack(side="left", padx=5, pady=5)
+
+        button = tk.Button(
+            frame, text="Browse",
+            command=lambda: select_file(f"Availability per Nationality Year {year}", text_widget, self),
+            font=("Arial", 10), bg="#008CBA", fg="white"
+        )
+        button.pack(side="right", padx=5)
+
+        self.previous_years_nationality_paths[year] = text_widget
+        logger.info(f"Added input field for previous year: {year}")
 
     def start_processing(self):
         self.process_button.config(state=tk.DISABLED)
-        threading.Thread(target=process_files, args=(self,), daemon=True).start()
+        logger.info("Processing started.")
 
-    # Function to handle cleanup checkbox state
+        try:
+            threading.Thread(target=process_files, args=(self,), daemon=True).start()
+            logger.info("Processing thread started successfully.")
+        except Exception as e:
+            logger.exception(f"Error starting processing thread. {e}")
+
     def toggle_cleanup(self):
-        if not self.cleanup_var:
-            self.cleanup_var = True
-            print("Temporary files will be removed.")
+        if self.cleanup_var.get():
+            logger.info("Temporary files will be removed.")
         else:
-            self.cleanup_var = False
-            print("Temporary files will stay.")
+            logger.info("Temporary files will stay.")
