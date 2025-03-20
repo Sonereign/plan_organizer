@@ -1,6 +1,7 @@
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
+from logger import logger
 
 # Constants
 HOUSE_KEYWORDS = ["Beach Apt", ".LUX for 4", ".Safari Tent 5pax", ".Sea Safari 4pax",
@@ -11,7 +12,7 @@ YOUTH_HOSTEL_KEYWORDS = ["Youth Hostel"]
 DAY_COLORS = {
     "Fri": "ADD8E6",  # Light Blue (Friday)
     "Sat": "90EE90",  # Light Green (Saturday)
-    "Sun": "FFB6C1"   # Light Pink (Sunday)
+    "Sun": "FFB6C1"  # Light Pink (Sunday)
 }
 
 
@@ -95,12 +96,12 @@ def apply_day_colors(output_file):
     wb.save(output_file)
 
 
-def stage1(input_file, output_file):
+def per_zone_stage1(input_file, output_file):
     """
     Process the input file (availabilityPerZone) and save the result to the output file.
     """
-    print("#######################################################")
-    print(f"Running Stage 1 with {input_file=} ....")
+    logger.info("#######################################################")
+    logger.info(f"Running Per Zone Stage 1 with {input_file=} ....")
     df = load_data(input_file)
     first_date_col, last_date_col = detect_date_columns(df)
 
@@ -111,14 +112,13 @@ def stage1(input_file, output_file):
     save_to_excel(df_split, output_file)
     apply_day_colors(output_file)
 
-    print(f"Stage 1 completed. File saved as {output_file}")
-    print("#######################################################")
+    logger.info(f"Per Zone Stage 1 completed. File saved as {output_file}")
 
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
     INPUT_FILE = "availabilityPerZone2025.xls"
-    OUTPUT_FILE = "stage1_output.xlsx"
+    OUTPUT_FILE = "per_zone_stage1_output.xlsx"
 
     # Run stage1
-    stage1(INPUT_FILE, OUTPUT_FILE)
+    per_zone_stage1(INPUT_FILE, OUTPUT_FILE)

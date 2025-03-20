@@ -5,6 +5,8 @@ import openpyxl
 from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter  # Convert column index to Excel letters
+from logger import logger
+
 
 # Define the months for reference
 MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"]
@@ -22,10 +24,10 @@ def find_total_current_year_column(ws, total_column):
         col_letter = get_column_letter(col)
 
         if isinstance(header_value, str) and header_value.strip() == f"Total {current_year}":
-            # print(f"[DEBUG] Found 'Total {current_year}' column at {col_letter} (Excel Col {col})")
+            # logger.info(f"[DEBUG] Found 'Total {current_year}' column at {col_letter} (Excel Col {col})")
             return col
 
-    print(f"[WARNING] 'Total {current_year}' column not found!")
+    logger.info(f"[WARNING] 'Total {current_year}' column not found!")
     return None
 
 
@@ -58,7 +60,7 @@ def find_existing_monthly_columns(ws, total_column):
         header_value = ws.cell(row=1, column=col).value
         if isinstance(header_value, str) and header_value in [f"{month} {current_year}" for month in MONTHS]:
             monthly_columns[header_value] = col
-            # print(f"[DEBUG] Found '{header_value}' at column {get_column_letter(col)} (Excel Col {col})")
+            # logger.info(f"[DEBUG] Found '{header_value}' at column {get_column_letter(col)} (Excel Col {col})")
 
     return monthly_columns
 
@@ -71,26 +73,26 @@ def should_skip_row(ws, row):
 
 def insert_monthly_sums(ws, max_row, month_ranges, monthly_columns, total_rooms_row, total_camping_row):
     """Insert sum formulas into existing 'Apr current_year', 'May current_year', etc. columns."""
-    print("\n[DEBUG] Placing sum formulas in existing monthly columns...")
+    logger.info("\n[DEBUG] Placing sum formulas in existing monthly columns...")
     current_year = datetime.now().year
 
     for month, (start_col, end_col) in month_ranges.items():
         sum_col = monthly_columns.get(f"{month} {current_year}")
         if not sum_col:
-            print(f"[WARNING] No column found for {month} {current_year}. Skipping.")
+            logger.info(f"[WARNING] No column found for {month} {current_year}. Skipping.")
             continue
 
         sum_col_letter = get_column_letter(sum_col)
         start_letter = get_column_letter(start_col)
         end_letter = get_column_letter(end_col)
 
-        # print(f"[DEBUG] Adding sums for {month}: Daily Columns {start_letter} to {end_letter}, Sum in {sum_col_letter}")
+        # logger.info(f"[DEBUG] Adding sums for {month}: Daily Columns {start_letter} to {end_letter}, Sum in {sum_col_letter}")
 
         for row in range(2, max_row + 1):
             if row not in [total_rooms_row, total_camping_row] and not should_skip_row(ws, row):
                 sum_formula = f"=SUM({start_letter}{row}:{end_letter}{row})"
                 ws.cell(row=row, column=sum_col).value = sum_formula
-                # print(f"[DEBUG] Row {row} (Excel {sum_col_letter}{row}): {sum_formula}")
+                # logger.info(f"[DEBUG] Row {row} (Excel {sum_col_letter}{row}): {sum_formula}")
 
 
 def insert_total_sums(ws, max_row, monthly_columns, total_current_year_col, total_rooms_row, total_camping_row):
@@ -98,7 +100,7 @@ def insert_total_sums(ws, max_row, monthly_columns, total_current_year_col, tota
     current_year = datetime.now().year
 
     if not total_current_year_col:
-        print(f"[WARNING] 'Total {current_year}' column not found. Skipping.")
+        logger.info(f"[WARNING] 'Total {current_year}' column not found. Skipping.")
         return
 
     total_current_year_letter = get_column_letter(total_current_year_col)
@@ -108,7 +110,7 @@ def insert_total_sums(ws, max_row, monthly_columns, total_current_year_col, tota
     yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
     bold_font = Font(bold=True)
 
-    print(f"\n[DEBUG] Adding total sums in 'Total {current_year}' column ({total_current_year_letter})...")
+    logger.info(f"\n[DEBUG] Adding total sums in 'Total {current_year}' column ({total_current_year_letter})...")
 
     for row in range(2, max_row + 1):
         if row not in [total_rooms_row, total_camping_row] and not should_skip_row(ws, row):
@@ -117,7 +119,7 @@ def insert_total_sums(ws, max_row, monthly_columns, total_current_year_col, tota
             cell.value = sum_formula
             cell.fill = yellow_fill  # Apply yellow fill to the cell
             cell.font = bold_font
-            # print(f"[DEBUG] Row {row} (Excel {total_current_year_letter}{row}): {sum_formula}")
+            # logger.info(f"[DEBUG] Row {row} (Excel {total_current_year_letter}{row}): {sum_formula}")
 
 
 def add_monthly_sums(ws, max_row, total_column, total_rooms_row, total_camping_row):
@@ -157,15 +159,15 @@ def is_black_filled(ws, row, col):
         return isinstance(fill, PatternFill) and fill.start_color.rgb == "00000000"
 
     if check_fill(row, col):
-        print(f"[DEBUG] {get_column_letter(col)}{row} is already black.")
+        logger.info(f"[DEBUG] {get_column_letter(col)}{row} is already black.")
         return True
     if row > 1 and check_fill(row - 1, col):
         ws.cell(row=row, column=col).fill = black_fill
-        print(f"[DEBUG] {get_column_letter(col)}{row} filled black because of upper cell.")
+        logger.info(f"[DEBUG] {get_column_letter(col)}{row} filled black because of upper cell.")
         return True
     if row < ws.max_row and check_fill(row + 1, col):
         ws.cell(row=row, column=col).fill = black_fill
-        print(f"[DEBUG] {get_column_letter(col)}{row} filled black because of lower cell.")
+        logger.info(f"[DEBUG] {get_column_letter(col)}{row} filled black because of lower cell.")
         return True
     return False
 
@@ -183,7 +185,7 @@ def insert_total_room_camping_sums(ws, total_column, total_row):
 
         # Skip column if first row cell is empty
         if ws.cell(row=1, column=col).value is None:
-            # print(f"[DEBUG] Skipping column {col_letter} because first row is empty.")
+            # logger.info(f"[DEBUG] Skipping column {col_letter} because first row is empty.")
             continue
 
         sum_formula = "=SUM("
@@ -199,7 +201,7 @@ def insert_total_room_camping_sums(ws, total_column, total_row):
             if not is_black_filled(ws, r, col):
                 sum_range.append(f"{col_letter}{r}")
             else:
-                print(f"[DEBUG] Skipping {col_letter}{r} due to black fill.")
+                logger.info(f"[DEBUG] Skipping {col_letter}{r} due to black fill.")
 
         if sum_range:
             sum_formula += ",".join(sum_range) + ")"
@@ -207,9 +209,9 @@ def insert_total_room_camping_sums(ws, total_column, total_row):
             cell.value = sum_formula
             cell.fill = yellow_fill
             cell.font = bold_font
-            # print(f"[DEBUG] {col_letter}{total_row}: {sum_formula}")
+            # logger.info(f"[DEBUG] {col_letter}{total_row}: {sum_formula}")
         else:
-            print(f"[WARNING] No valid cells to sum for {col_letter}{total_row}")
+            logger.info(f"[WARNING] No valid cells to sum for {col_letter}{total_row}")
 
 
 def apply_grid_borders(ws):
@@ -243,7 +245,7 @@ def calculate_percent_to_total(ws, previous_years):
         total_rooms_row, total_camping_row = find_total_rows(ws)
 
         if not percent_col or not total_col or (not total_rooms_row and not total_camping_row):
-            print("[ERROR] Required columns or rows not found!")
+            logger.info("[ERROR] Required columns or rows not found!")
             return
 
         for row in range(2, ws.max_row + 1):
@@ -258,7 +260,7 @@ def calculate_percent_to_total(ws, previous_years):
                 if total_cell.value is not None and total_ref_cell.value is not None:
                     percent_cell.value = f"={total_cell.coordinate}/{total_ref_cell.coordinate}"
                     percent_cell.number_format = "0.00%"
-                    print(f"[DEBUG] {percent_cell.coordinate} = {percent_cell.value}")
+                    logger.info(f"[DEBUG] {percent_cell.coordinate} = {percent_cell.value}")
 
 
 def calculate_percent_difference(ws, previous_years):
@@ -271,7 +273,7 @@ def calculate_percent_difference(ws, previous_years):
         total_previous_year_col = find_column_by_header(ws, f"Total {year}")
 
         if not percent_diff_col or not total_current_year_col or not total_previous_year_col:
-            print("[ERROR] Required columns not found!")
+            logger.info("[ERROR] Required columns not found!")
             return
 
         for row in range(2, ws.max_row + 1):
@@ -282,7 +284,7 @@ def calculate_percent_difference(ws, previous_years):
             if total_current_year_cell.value is not None and total_previous_year_cell.value is not None:
                 percent_diff_cell.value = f"=IF({total_previous_year_cell.coordinate}<>0, ({total_current_year_cell.coordinate}-{total_previous_year_cell.coordinate})/{total_previous_year_cell.coordinate}, 0)"
                 percent_diff_cell.number_format = "0.00%"
-                print(f"[DEBUG] {percent_diff_cell.coordinate} = {percent_diff_cell.value}")
+                logger.info(f"[DEBUG] {percent_diff_cell.coordinate} = {percent_diff_cell.value}")
 
         # Apply conditional formatting: Red for negative, Green for positive
         percent_diff_range = f"{get_column_letter(percent_diff_col)}2:{get_column_letter(percent_diff_col)}{ws.max_row}"
@@ -301,7 +303,7 @@ def fill_black_columns(ws):
     for col in range(1, ws.max_column + 1):
         header_cell = ws.cell(row=1, column=col)
         if header_cell.value is None or str(header_cell.value).strip().lower() == "sep_col":
-            print(f"[DEBUG] Header '{header_cell.value}' in column {col} is blacked out.")
+            logger.info(f"[DEBUG] Header '{header_cell.value}' in column {col} is blacked out.")
             for row in range(2, ws.max_row + 1):  # Fill all data rows
                 ws.cell(row=row, column=col).fill = black_fill
                 ws.column_dimensions[get_column_letter(col)].width = 5  # Set width to 5
@@ -315,13 +317,13 @@ def fill_black_rows(ws):
     for row in range(2, last_data_row + 1):
         first_cell = ws.cell(row=row, column=1)
         if first_cell.value is None or str(first_cell.value).strip().lower() in ["pan_pan", "sep_row"]:
-            print(f"[DEBUG] Row {row} ('{first_cell.value}') is blacked out.")
+            logger.info(f"[DEBUG] Row {row} ('{first_cell.value}') is blacked out.")
             for col in range(1, ws.max_column + 1):
                 ws.cell(row=row, column=col).fill = black_fill
 
     # Black out the row after the last data row
     extra_row = last_data_row + 1
-    print(f"[DEBUG] Blacking out extra row {extra_row}.")
+    logger.info(f"[DEBUG] Blacking out extra row {extra_row}.")
     for col in range(1, ws.max_column + 1):
         ws.cell(row=extra_row, column=col).fill = black_fill
 
@@ -348,7 +350,7 @@ def fill_date_columns(ws):
                     fill_color = PatternFill(start_color=year_colors[year], end_color=year_colors[year],
                                              fill_type="solid")
 
-                    print(f"[DEBUG] Coloring column {col} ({header_value}) with {year_colors[year]}")  # Debugging info
+                    logger.info(f"[DEBUG] Coloring column {col} ({header_value}) with {year_colors[year]}")  # Debugging info
 
                     # Apply color to entire column, skipping specific rows
                     for row in range(2, ws.max_row + 1):  # Start from row 2 (skip header)
@@ -362,7 +364,7 @@ def fill_date_columns(ws):
                         ws.cell(row=row, column=col).fill = fill_color
 
 
-def process_stage10(input_file, output_file, previous_years):
+def process_per_nat_stage6(input_file, output_file, previous_years):
     """Processes Stage 10 by adding sum formulas to the input Excel file."""
     wb = openpyxl.load_workbook(input_file)
     ws = wb.active
@@ -378,10 +380,10 @@ def process_stage10(input_file, output_file, previous_years):
         elif cell_value == "Total Camping":
             total_camping_row = row
 
-    print(f"Processing file: {input_file}")
-    print(f"Max row: {max_row}")
-    print(f"Total Rooms Row: {total_rooms_row}")
-    print(f"Total Camping Row: {total_camping_row}")
+    logger.info(f"Processing file: {input_file}")
+    logger.info(f"Max row: {max_row}")
+    logger.info(f"Total Rooms Row: {total_rooms_row}")
+    logger.info(f"Total Camping Row: {total_camping_row}")
 
     add_monthly_sums(ws, max_row, total_column, total_rooms_row, total_camping_row)
 
@@ -397,16 +399,16 @@ def process_stage10(input_file, output_file, previous_years):
     fill_date_columns(ws)
 
     wb.save(output_file)
-    print(f"Stage 10 processing complete. Output saved to {output_file}")
+    logger.info(f"Stage 10 processing complete. Output saved to {output_file}")
 
 
-def stage10(input_path, output_path, previous_years):
-    """Entry point for Stage 10 processing."""
-    process_stage10(input_file=input_path, output_file=output_path, previous_years=previous_years)
+def per_nat_stage6(input_path, output_path, previous_years):
+    """Entry point for per_nat_stage6 processing."""
+    process_per_nat_stage6(input_file=input_path, output_file=output_path, previous_years=previous_years)
 
 
 if __name__ == '__main__':
     input_path = "stage9_output.xlsx"
     output_path = "stage10_output.xlsx"
     previous_years = [2024, 2023]  # Example: List of previous years
-    stage10(input_path=input_path, output_path=output_path, previous_years=previous_years)
+    per_nat_stage6(input_path=input_path, output_path=output_path, previous_years=previous_years)

@@ -10,16 +10,16 @@ from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.reader.excel import load_workbook
 from openpyxl.utils import get_column_letter
 
-from stage1 import stage1
-from stage10 import stage10
-from stage2 import stage2
-from stage3 import stage3
-from stage4 import stage4
-from stage5 import stage5
-from stage6 import stage6
-from stage7 import stage7
-from stage8 import stage8
-from stage9 import stage9
+from per_zone_stage1 import per_zone_stage1
+from per_nat_stage6 import per_nat_stage6
+from per_zone_stage2 import per_zone_stage2
+from per_zone_stage3 import per_zone_stage3
+from per_zone_stage4 import per_zone_stage4
+from per_nat_stage1 import per_nat_stage1
+from per_nat_stage2 import per_nat_stage2
+from per_nat_stage3 import per_nat_stage3
+from per_nat_stage4 import per_nat_stage4
+from per_nat_stage5 import per_nat_stage5
 
 CLEANUP_OUTPUTS = False
 
@@ -157,20 +157,20 @@ class PlanoKratiseonApp:
             stage10_output = "stage10_output.xlsx"
 
             # Run stages
-            self.run_stage(stage1, self.availability_per_zone_path, stage1_output)
-            self.run_stage(stage2, stage1_output, self.availability_per_type_path, stage2_output)
-            self.run_stage(stage3, stage2_output, stage3_output)
-            self.run_stage(stage4, stage3_output, stage4_output)
+            self.run_stage(per_zone_stage1, self.availability_per_zone_path, stage1_output)
+            self.run_stage(per_zone_stage2, stage1_output, self.availability_per_type_path, stage2_output)
+            self.run_stage(per_zone_stage3, stage2_output, stage3_output)
+            self.run_stage(per_zone_stage4, stage3_output, stage4_output)
 
             # Run stage5 if nationality file is provided
             if self.availability_per_nationality_path:
-                self.run_stage(stage5, self.availability_per_nationality_path, stage5_output)
+                self.run_stage(per_nat_stage1, self.availability_per_nationality_path, stage5_output)
 
             # Run Stage 6 for previous years
             for year, file_path in self.previous_years_paths.items():
                 output_file = f"stage6_Output_{year}.xlsx"
                 stage6_output_filenames.append(output_file)  # Append file name to list
-                stage6(input_file=file_path, output_file=output_file, year=year)
+                per_nat_stage2(input_file=file_path, output_file=output_file, year=year)
 
             previous_years = list(self.previous_years_paths.keys())  # Extract years from dictionary keys
             number_of_previous_year_data = len(stage6_output_filenames)
@@ -186,10 +186,10 @@ class PlanoKratiseonApp:
                 self.combine_sheets(stage4_output, stage5_output, final_output, sheet1_name, sheet2_name)
             else:
                 # Create final output by combining sheets from stage4 and stage10 outputs
-                self.run_stage(stage7, stage5_output, stage6_output_filenames, stage7_output)
-                self.run_stage(stage8, stage7_output, stage8_output, previous_years, number_of_previous_year_data)
-                self.run_stage(stage9, stage8_output, stage9_output, previous_years)
-                self.run_stage(stage10, stage9_output, stage10_output, previous_years)
+                self.run_stage(per_nat_stage3, stage5_output, stage6_output_filenames, stage7_output)
+                self.run_stage(per_nat_stage4, stage7_output, stage8_output, previous_years, number_of_previous_year_data)
+                self.run_stage(per_nat_stage5, stage8_output, stage9_output, previous_years)
+                self.run_stage(per_nat_stage6, stage9_output, stage10_output, previous_years)
                 self.combine_sheets(stage4_output, stage10_output, final_output, sheet1_name, sheet2_name)
 
             # Notify user of success

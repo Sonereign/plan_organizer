@@ -1,6 +1,6 @@
 import openpyxl
 from openpyxl.styles import PatternFill, Font, Border, Alignment
-
+from logger import logger
 
 def load_stage5_data(stage5_file):
     wb5 = openpyxl.load_workbook(stage5_file)
@@ -144,15 +144,15 @@ def append_stage6_to_stage5(stage5_file, stage6_files, output_file):
     wb5.save(output_file)
 
 
-def stage7(stage5_path, stage6_paths, output_path):
-    print(f'Starting with stage 7')
+def per_nat_stage3(stage5_path, stage6_paths, output_path):
+    logger.info(f'Starting with Per Nationality Stage 3')
     append_stage6_to_stage5(stage5_path, stage6_paths, output_path)
-    print(f'Stage 7 completed. File saved as {output_path}')
+    logger.info(f'Per Nationality Stage 3 completed. File saved as {output_path}')
 
 
 if __name__ == '__main__':
-    stage5_path = "stage5_output.xlsx"
-    stage6_paths = ["stage6_output_2024.xlsx", "stage6_output_2023.xlsx",]  # Add all Stage 6 files here
-    output_path = "stage7_output.xlsx"
+    stage5_path = "per_nat_stage1_output.xlsx"
+    stage6_paths = ["per_nat_stage2_output_2024.xlsx", "per_nat_stage2_output_2023.xlsx",]  # Add all Stage 6 files here
+    output_path = "per_nat_stage3_output.xlsx"
 
     append_stage6_to_stage5(stage5_path, stage6_paths, output_path)

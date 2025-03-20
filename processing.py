@@ -8,16 +8,17 @@ from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.reader.excel import load_workbook
 from openpyxl.utils import get_column_letter
 
-from stage1 import stage1
-from stage2 import stage2
-from stage3 import stage3
-from stage4 import stage4
-from stage5 import stage5
-from stage6 import stage6
-from stage7 import stage7
-from stage8 import stage8
-from stage9 import stage9
-from stage10 import stage10
+from per_zone_stage1 import per_zone_stage1
+from per_zone_stage2 import per_zone_stage2
+from per_zone_stage3 import per_zone_stage3
+from per_zone_stage4 import per_zone_stage4
+from per_nat_stage1 import per_nat_stage1
+from per_nat_stage2 import per_nat_stage2
+from per_nat_stage3 import per_nat_stage3
+from per_nat_stage4 import per_nat_stage4
+from per_nat_stage5 import per_nat_stage5
+from per_nat_stage6 import per_nat_stage6
+from logger import logger
 
 
 def process_files(app):
@@ -28,46 +29,46 @@ def process_files(app):
         sheet1_name = f"{today}-πληρότητα-units"
         sheet2_name = "εθνικότητες"
 
-        stage1_output = "stage1_output.xlsx"
-        stage2_output = "stage2_output.xlsx"
-        stage3_output = "stage3_output.xlsx"
-        stage4_output = "stage4_output.xlsx"
-        stage5_output = "stage5_output.xlsx"
-        stage6_output_filenames = []
-        stage7_output = "stage7_output.xlsx"
-        stage8_output = "stage8_output.xlsx"
-        stage9_output = "stage9_output.xlsx"
-        stage10_output = "stage10_output.xlsx"
+        per_zone_stage1_output = "per_zone_stage1_output.xlsx"
+        per_zone_stage2_output = "per_zone_stage2_output.xlsx"
+        per_zone_stage3_output = "per_zone_stage3_output.xlsx"
+        per_zone_stage4_output = "per_zone_stage4_output.xlsx"
+        per_nat_stage1_output = "per_nat_stage1_output.xlsx"
+        per_nat_stage2_output_filenames = []
+        per_nat_stage3_output = "per_nat_stage3_output.xlsx"
+        per_nat_stage4_output = "per_nat_stage4_output.xlsx"
+        per_nat_stage5_output = "per_nat_stage5_output.xlsx"
+        per_nat_stage6_output = "per_nat_stage6_output.xlsx"
 
-        stage1(app.availability_per_zone_path, stage1_output)
-        stage2(stage1_output, app.availability_per_type_path, stage2_output)
-        stage3(stage2_output, stage3_output)
-        stage4(stage3_output, stage4_output)
+        per_zone_stage1(app.availability_per_zone_path, per_zone_stage1_output)
+        per_zone_stage2(per_zone_stage1_output, app.availability_per_type_path, per_zone_stage2_output)
+        per_zone_stage3(per_zone_stage2_output, per_zone_stage3_output)
+        per_zone_stage4(per_zone_stage3_output, per_zone_stage4_output)
 
         # Run stage5 if nationality file is provided
         if app.availability_per_nationality_path:
-            stage5(app.availability_per_nationality_path, stage5_output)
+            per_nat_stage1(app.availability_per_nationality_path, per_nat_stage1_output)
 
         # Run Stage 6 for previous years
         for year, file_path in app.previous_years_paths.items():
-            output_file = f"stage6_Output_{year}.xlsx"
-            stage6_output_filenames.append(output_file)  # Append file name to list
-            stage6(input_file=file_path, output_file=output_file, year=year)
+            output_file = f"per_nat_stage2_output_{year}.xlsx"
+            per_nat_stage2_output_filenames.append(output_file)  # Append file name to list
+            per_nat_stage2(input_file=file_path, output_file=output_file, year=year)
 
         previous_years = list(app.previous_years_paths.keys())  # Extract years from dictionary keys
-        number_of_previous_year_data = len(stage6_output_filenames)
+        number_of_previous_year_data = len(per_nat_stage2_output_filenames)
 
-        if not stage6_output_filenames:
+        if not per_nat_stage2_output_filenames:
             # Create final output by combining sheets from stage4 and stage5 outputs
-            combine_sheets(stage4_output=stage4_output, stage5_output=stage5_output, final_output=final_output,
-                               sheet1_name=sheet1_name, sheet2_name=sheet2_name, app=app)
+            combine_sheets(per_zone_stage4=per_zone_stage4_output, per_nat_stage1=per_nat_stage1_output, final_output=final_output,
+                           sheet1_name=sheet1_name, sheet2_name=sheet2_name, app=app)
         else:
             # Create final output by combining sheets from stage4 and stage10 outputs
-            stage7(stage5_output, stage6_output_filenames, stage7_output)
-            stage8(stage7_output, stage8_output, previous_years, number_of_previous_year_data)
-            stage9(stage8_output, stage9_output, previous_years)
-            stage10(stage9_output, stage10_output, previous_years)
-            combine_sheets(stage4_output, stage10_output, final_output, sheet1_name, sheet2_name, app=app)
+            per_nat_stage3(per_nat_stage1_output, per_nat_stage2_output_filenames, per_nat_stage3_output)
+            per_nat_stage4(per_nat_stage3_output, per_nat_stage4_output, previous_years, number_of_previous_year_data)
+            per_nat_stage5(per_nat_stage4_output, per_nat_stage5_output, previous_years)
+            per_nat_stage6(per_nat_stage5_output, per_nat_stage6_output, previous_years)
+            combine_sheets(per_zone_stage4_output, per_nat_stage6_output, final_output, sheet1_name, sheet2_name, app=app)
 
         app.status_label.config(text="Processing complete!")
         messagebox.showinfo("Success", f"Final output saved as {final_output}")
@@ -77,23 +78,23 @@ def process_files(app):
         app.process_button.config(state="normal")
         if app.cleanup_var:
             # Clean up temporary files
-            for file in [stage1_output, stage2_output, stage3_output, stage4_output, stage5_output, stage7_output,
-                         stage8_output, stage9_output, stage10_output]:
+            for file in [per_zone_stage1_output, per_zone_stage2_output, per_zone_stage3_output, per_zone_stage4_output, per_nat_stage1_output, per_nat_stage3_output,
+                         per_nat_stage4_output, per_nat_stage5_output, per_nat_stage6_output]:
                 if os.path.exists(file):
                     os.remove(file)
-            for file in stage6_output_filenames:
+            for file in per_nat_stage2_output_filenames:
                 if os.path.exists(file):
                     os.remove(file)
 
 
-def combine_sheets(stage4_output, stage5_output, final_output, sheet1_name, sheet2_name, app):
+def combine_sheets(per_zone_stage4, per_nat_stage1, final_output, sheet1_name, sheet2_name, app):
     """Combine sheets from stage4 and stage5 outputs into a single Excel file."""
     # Load workbooks
-    wb_stage4 = load_workbook(stage4_output)
-    wb_stage5 = load_workbook(stage5_output) if app.availability_per_nationality_path else None
+    wb_stage4 = load_workbook(per_zone_stage4)
+    wb_stage5 = load_workbook(per_nat_stage1) if app.availability_per_nationality_path else None
 
     # Create a new workbook for the final output
-    wb_final = load_workbook(stage4_output)  # Start with a copy of stage4 output
+    wb_final = load_workbook(per_zone_stage4)  # Start with a copy of stage4 output
 
     # Rename the sheet from stage4 to the custom sheet1 name
     sheet_stage4 = wb_final.active
@@ -148,4 +149,4 @@ def apply_conditional_formatting(file_path):
 
     # Save the workbook
     wb.save(file_path)
-    print("Conditional formatting applied successfully!")
+    logger.info("Conditional formatting applied successfully!")
