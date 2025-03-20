@@ -4,6 +4,7 @@ from file_handler import select_file
 from processing import process_files
 from logger import logger
 
+
 class PlanoKratiseonApp:
     def __init__(self, root):
         self.root = root
@@ -26,8 +27,17 @@ class PlanoKratiseonApp:
         file_frame = tk.Frame(self.root, bg="#f0f0f0")
         file_frame.pack(pady=10, fill="x", padx=20)
 
-        self.availability_per_zone_text = self.create_file_section(file_frame, "Availability Per Zone")
-        self.availability_per_type_text = self.create_file_section(file_frame, "Availability Per Type")
+        # Availability Per Zone Frame
+        zone_frame = tk.LabelFrame(file_frame, text="Availability Per Zone", font=("Arial", 12, "bold"), bg="#f0f0f0",
+                                   padx=10, pady=10)
+        zone_frame.pack(fill="x", pady=5)
+        self.availability_per_zone_text = self.create_file_section(zone_frame, "Availability Per Zone")
+
+        # Availability Per Type Frame
+        type_frame = tk.LabelFrame(file_frame, text="Availability Per Type", font=("Arial", 12, "bold"), bg="#f0f0f0",
+                                   padx=10, pady=10)
+        type_frame.pack(fill="x", pady=5)
+        self.availability_per_type_text = self.create_file_section(type_frame, "Availability Per Type")
 
         nationality_frame = tk.LabelFrame(file_frame, text="Availability Per Nationality & Previous Years",
                                           font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
