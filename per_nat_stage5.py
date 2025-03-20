@@ -1,6 +1,8 @@
 import openpyxl
 from openpyxl.styles import PatternFill
 from datetime import datetime
+from logger import logger
+
 
 def get_headers(ws):
     """Returns a list of headers from the first row of the worksheet."""
@@ -17,7 +19,7 @@ def delete_columns_after_category(ws, last_category_index):
     """Deletes all columns after the last occurrence of 'Category'."""
     if last_category_index:
         ws.delete_cols(last_category_index + 1, ws.max_column - last_category_index)
-        print(f"Deleted columns from index {last_category_index + 1} onward.")
+        logger.info(f"Deleted columns from index {last_category_index + 1} onward.")
 
 def add_percentage_columns(ws, previous_years):
     """Adds 'Percent to Total YYYY' columns for the current year and given previous years."""
@@ -30,7 +32,7 @@ def add_percentage_columns(ws, previous_years):
         ws.insert_cols(last_col + index)
         ws.cell(row=1, column=last_col + index).value = f"Percent to Total {year}"
 
-    print(f"Added 'Percent to Total' columns for: {all_years}")
+    logger.info(f"Added 'Percent to Total' columns for: {all_years}")
 
     return last_col + len(all_years)  # Return the next available column index
 
@@ -52,10 +54,10 @@ def find_and_replace_percent_to_total_column(ws, current_year):
             for row in range(1, ws.max_row + 1):
                 ws.cell(row=row, column=col).fill = black_fill
 
-            print(f"Replaced '{target_header}' column at position {col} with a black-filled separator.")
+            logger.info(f"Replaced '{target_header}' column at position {col} with a black-filled separator.")
             return col + 1  # Return the next available column index
 
-    print(f"Column '{target_header}' not found.")
+    logger.info(f"Column '{target_header}' not found.")
     return None
 
 def add_separator_column(ws, insert_at_col):
@@ -68,7 +70,7 @@ def add_separator_column(ws, insert_at_col):
     for row in range(1, ws.max_row + 1):  # Fill the entire column with black
         ws.cell(row=row, column=insert_at_col).fill = black_fill
 
-    print(f"Added a black-filled separator column at position {insert_at_col}")
+    logger.info(f"Added a black-filled separator column at position {insert_at_col}")
 
     return insert_at_col + 1  # Return the next available column index
 
@@ -80,14 +82,14 @@ def add_percent_difference_columns(ws, insert_at_col, previous_years):
         ws.insert_cols(insert_at_col + index)
         ws.cell(row=1, column=insert_at_col + index).value = f"Percent difference {current_year} - {prev_year}"
 
-    print(f"Added 'Percent difference' columns for: {previous_years}")
+    logger.info(f"Added 'Percent difference' columns for: {previous_years}")
 
     return insert_at_col + len(previous_years)  # Return the next available column index
 
-def process_stage9(input_file, output_file, previous_years):
-    """Processes Stage 9 by deleting columns after 'Category', adding percentage columns, separators, and percent differences."""
-    print("#######################################################")
-    print(f"Running Stage 9 with {input_file=} - {output_file=} - {previous_years=}")
+def process_per_nat_stage5(input_file, output_file, previous_years):
+    """Processes per_nat_stage5 by deleting columns after 'Category', adding percentage columns, separators, and percent differences."""
+    logger.info("#######################################################")
+    logger.info(f"Running Stage 9 with {input_file=} - {output_file=} - {previous_years=}")
     wb = openpyxl.load_workbook(input_file)
     ws = wb.active
 
@@ -109,14 +111,14 @@ def process_stage9(input_file, output_file, previous_years):
     find_and_replace_percent_to_total_column(ws, current_year)
 
     wb.save(output_file)
-    print(f"Stage 9 processing complete. Output saved to {output_file}")
+    logger.info(f"Stage 9 processing complete. Output saved to {output_file}")
 
-def stage9(input_path, output_path, previous_years):
-    """Entry point for Stage 9 processing."""
-    process_stage9(input_file=input_path, output_file=output_path, previous_years=previous_years)
+def per_nat_stage5(input_path, output_path, previous_years):
+    """Entry point for per_nat_stage5 processing."""
+    process_per_nat_stage5(input_file=input_path, output_file=output_path, previous_years=previous_years)
 
 if __name__ == '__main__':
     input_path = "stage8_output.xlsx"
     output_path = "stage9_output.xlsx"
     previous_years = [2024, 2023]  # Example: List of previous years
-    stage9(input_path=input_path, output_path=output_path, previous_years=previous_years)
+    per_nat_stage5(input_path=input_path, output_path=output_path, previous_years=previous_years)

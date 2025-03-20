@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from logger import logger
 
 DO_CALCULATIONS = False
 
@@ -268,22 +269,22 @@ def apply_excel_formatting_and_formulas(output_file, year):
     wb.save(output_file)
 
 
-def stage6(input_file, output_file, year):
+def per_nat_stage2(input_file, output_file, year):
     """Process reservations and generate the output Excel file."""
-    print(f'Starting with Stage 6. Year: {year}. Input File: {input_file}')
+    logger.info(f'Starting with Stage 6. Year: {year}. Input File: {input_file}')
     df, headers = load_and_prepare_data(input_file)
     df = format_dates(df)
     split_index = find_camping_first_index(df)
     df = insert_totals_and_spacing(df, split_index, year=year)
     df.to_excel(output_file, index=False, engine='openpyxl')
     apply_excel_formatting_and_formulas(output_file, year=year)
-    print(f'Stage 6 completed. File saved as {output_file}')
+    logger.info(f'Stage 6 completed. File saved as {output_file}')
 
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
     INPUT_FILE = "availabilityPerNationality2024.xls"
-    OUTPUT_FILE = "stage6_output_2024.xlsx"
+    OUTPUT_FILE = "per_nat_stage2_output_2024.xlsx"
 
     # Run stage6
-    stage6(INPUT_FILE, OUTPUT_FILE, 2024)
+    per_nat_stage2(INPUT_FILE, OUTPUT_FILE, 2024)

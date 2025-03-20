@@ -1,6 +1,7 @@
 import openpyxl
 import re
 from datetime import datetime
+from logger import logger
 
 
 def extract_date(header):
@@ -72,7 +73,8 @@ def find_total_column_from_first_prev_year(ws):
     return total_columns
 
 
-def insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year, previous_years):
+def insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year,
+                                                         previous_years):
     """Repositions existing 'Total YYYY' columns instead of inserting new ones."""
     if not total_columns:
         return
@@ -99,11 +101,10 @@ def insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, numb
             )
             headers = get_headers(ws)  # Update headers after movement
         else:
-            print(f"Warning: {previous_total_header} not found, skipping.")
+            logger.info(f"Warning: {previous_total_header} not found, skipping.")
 
         previous_year_index += 1
         extra_index += 1
-
 
 
 def drop_total_current_year_column_first_occurance(ws, current_year):
@@ -113,14 +114,14 @@ def drop_total_current_year_column_first_occurance(ws, current_year):
     if total_header in headers:
         total_col = headers.index(total_header) + 1
         ws.delete_cols(total_col)
-        print(f"Dropped first occurrence of column: {total_header} at position {total_col}")
+        logger.info(f"Dropped first occurrence of column: {total_header} at position {total_col}")
     else:
-        print(f"Column {total_header} not found, no deletion performed.")
+        logger.info(f"Column {total_header} not found, no deletion performed.")
 
 
-def process_stage8(stage7_file, output_file, number_of_previous_year_data, previous_years):
+def process_per_nat_stage4(per_nat_stage3_output, output_file, number_of_previous_year_data, previous_years):
     """Processes Stage 8 by inserting empty columns, moving data, and adjusting total columns."""
-    wb = openpyxl.load_workbook(stage7_file)
+    wb = openpyxl.load_workbook(per_nat_stage3_output)
     ws = wb.active
     current_year = datetime.now().year
 
@@ -129,20 +130,23 @@ def process_stage8(stage7_file, output_file, number_of_previous_year_data, previ
     insert_empty_columns_for_months_prev_years(ws, date_columns, number_of_previous_year_data)
     move_previous_years_months_sums(ws, number_of_previous_year_data, current_year)
     total_columns = find_total_column_from_first_prev_year(ws)
-    insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year, previous_years)
+    insert_total_columns_current_and_the_rest_prev_years(ws, total_columns, number_of_previous_year_data, current_year,
+                                                         previous_years)
     drop_total_current_year_column_first_occurance(ws, current_year)
 
     wb.save(output_file)
 
 
-def stage8(stage7_path, output_path, previous_years, number_of_previous_year_data):
+def per_nat_stage4(per_nat_stage3_output, output_path, previous_years, number_of_previous_year_data):
     """Entry point for Stage 8 processing."""
-    process_stage8(stage7_file=stage7_path, output_file=output_path, number_of_previous_year_data=number_of_previous_year_data, previous_years=previous_years)
+    process_per_nat_stage4(per_nat_stage3_output=per_nat_stage3_output, output_file=output_path,
+                           number_of_previous_year_data=number_of_previous_year_data, previous_years=previous_years)
 
 
 if __name__ == '__main__':
-    stage7_path = "stage7_output.xlsx"
-    output_path = "stage8_output.xlsx"
+    stage7_path = "per_nat_stage3_output.xlsx"
+    output_path = "per_nat_stage4_output.xlsx"
     previous_years = ["2024", "2023"]  # List of previous years as strings
     number_of_previous_year_data = len(previous_years)
-    stage8(stage7_path=stage7_path, output_path=output_path, previous_years=previous_years, number_of_previous_year_data=number_of_previous_year_data)
+    per_nat_stage4(per_nat_stage3_output=stage7_path, output_path=output_path, previous_years=previous_years,
+                   number_of_previous_year_data=number_of_previous_year_data)

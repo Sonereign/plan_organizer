@@ -1,4 +1,5 @@
 import pandas as pd
+from logger import logger
 
 # Hardcoded capacities for accommodations
 ACCOMMODATION_CAPACITIES = {
@@ -83,18 +84,18 @@ def update_capacity_column(df, capacities, category_type):
     # Check for skipped categories/areas
     skipped_categories = set(capacities.keys()) - updated_categories
     if skipped_categories:
-        print(
+        logger.info(
             f"The following {category_type} were not found in the Excel file and were skipped: {', '.join(skipped_categories)}")
 
     return df
 
 
-def stage3(input_file, output_file):
+def per_zone_stage3(input_file, output_file):
     """
     Process the input file (output of stage2) and save the result to the output file.
     """
-    print("#######################################################")
-    print(f"Running Stage 3 with {input_file=} ....")
+    logger.info("#######################################################")
+    logger.info(f"Running Per Zone Stage 3 with {input_file=} ....")
     # Load the Excel file
     df = pd.read_excel(input_file, sheet_name='Sheet1', header=None)
 
@@ -106,14 +107,13 @@ def stage3(input_file, output_file):
 
     # Save the updated DataFrame to a new Excel file
     df.to_excel(output_file, index=False, header=False)
-    print(f"Stage 3 completed. File saved as {output_file}")
-    print("#######################################################")
+    logger.info(f"Per_zone Stage 3 completed. File saved as {output_file}")
 
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "stage2_output.xlsx"
-    OUTPUT_FILE = "stage3_output.xlsx"
+    INPUT_FILE = "per_zone_stage2_output.xlsx"
+    OUTPUT_FILE = "per_zone_stage3_output.xlsx"
 
     # Run stage3
-    stage3(INPUT_FILE, OUTPUT_FILE)
+    per_zone_stage3(INPUT_FILE, OUTPUT_FILE)

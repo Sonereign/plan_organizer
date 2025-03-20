@@ -2,7 +2,7 @@ import tkinter as tk
 import threading
 from file_handler import select_file
 from processing import process_files
-
+from logger import logger
 
 class PlanoKratiseonApp:
     def __init__(self, root):
@@ -102,7 +102,7 @@ class PlanoKratiseonApp:
     def toggle_cleanup(self):
         if not self.cleanup_var:
             self.cleanup_var = True
-            print("Temporary files will be removed.")
+            logger.info("Temporary files will be removed.")
         else:
             self.cleanup_var = False
-            print("Temporary files will stay.")
+            logger.info("Temporary files will stay.")

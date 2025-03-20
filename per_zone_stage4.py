@@ -1,7 +1,7 @@
 import pandas as pd
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Font, Border, Side
-from openpyxl import Workbook
+from logger import logger
 
 # Hardcoded capacities for accommodations
 ACCOMMODATION_CAPACITIES = {
@@ -143,12 +143,12 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
     return df
 
 
-def stage4(input_file, output_file):
+def per_zone_stage4(input_file, output_file):
     """
     Process the input file (output of stage3) and save the result to the output file.
     """
-    print("#######################################################")
-    print(f"Running Stage 4 with {input_file=}")
+    logger.info("#######################################################")
+    logger.info(f"Running Per Zone Stage 4 with {input_file=}")
     # Load the Excel file
     df = pd.read_excel(input_file, sheet_name='Sheet1', header=None)
 
@@ -239,14 +239,13 @@ def stage4(input_file, output_file):
         # Freeze pane at B2
         worksheet.freeze_panes = "C2"
 
-    print(f"Stage 4 completed. File saved as {output_file}")
-    print("#######################################################")
+    logger.info(f"Per Zone Stage 4 completed. File saved as {output_file}")
 
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    INPUT_FILE = "stage3_output.xlsx"
-    OUTPUT_FILE = "stage4_output.xlsx"
+    INPUT_FILE = "per_zone_stage3_output.xlsx"
+    OUTPUT_FILE = "per_zone_stage4_output.xlsx"
 
     # Run stage4
-    stage4(INPUT_FILE, OUTPUT_FILE)
+    per_zone_stage4(INPUT_FILE, OUTPUT_FILE)

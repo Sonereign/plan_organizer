@@ -1,4 +1,6 @@
 import pandas as pd
+from logger import logger
+
 
 # Constants
 TARGET_CATEGORY = ".Beach Apt / for 5.2.6"
@@ -42,25 +44,24 @@ def replace_category_row(df_zone, df_type, target_category):
     return df_zone
 
 
-def stage2(zone_file, type_file, output_file):
+def per_zone_stage2(zone_file, type_file, output_file):
     """
     Process the input files (output of stage1 and availabilityPerType) and save the result to the output file.
     """
-    print("#######################################################")
-    print(f"Running Stage 2 with {zone_file=} - {type_file=} ....")
+    logger.info("#######################################################")
+    logger.info(f"Running Per Zone Stage 2 with {zone_file=} - {type_file=} ....")
     df_zone = pd.read_excel(zone_file)
     df_type = load_filtered_data(type_file, FILTER_KEYWORDS)
     df_updated = replace_category_row(df_zone, df_type, TARGET_CATEGORY)
     df_updated.to_excel(output_file, index=False, engine='openpyxl')
-    print(f"Stage 2 completed. File saved as {output_file}")
-    print("#######################################################")
+    logger.info(f"Per Zone Stage 2 completed. File saved as {output_file}")
 
 
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
-    ZONE_FILE = "stage1_output.xlsx"
+    ZONE_FILE = "per_zone_stage1_output.xlsx"
     TYPE_FILE = "availabilityPerType2025.xls"
-    OUTPUT_FILE = "stage2_output.xlsx"
+    OUTPUT_FILE = "per_zone_stage2_output.xlsx"
 
     # Run stage2
-    stage2(ZONE_FILE, TYPE_FILE, OUTPUT_FILE)
+    per_zone_stage2(ZONE_FILE, TYPE_FILE, OUTPUT_FILE)
