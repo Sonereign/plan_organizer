@@ -82,6 +82,7 @@ def detect_groups(df):
         current_group["name"] = "Camping"
         groups.append(current_group)
 
+    print(f'{groups}')
     return groups
 
 
@@ -97,9 +98,12 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
     # Add SUM formula for the Capacity column (column B)
     capacity_col_letter = get_column_letter(2)  # Column B
     if not is_last_group:
-        capacity_formula = f"=SUM({capacity_col_letter}{start_row + 1}:{capacity_col_letter}{end_row})"
+        # capacity_formula = f"=SUM({capacity_col_letter}{start_row + 1}:{capacity_col_letter}{end_row})"
+        capacity_formula = ""
     else:
-        capacity_formula = f"=SUM({capacity_col_letter}{start_row + 1}:{capacity_col_letter}{end_row + 1})"
+        # capacity_formula = f"=SUM({capacity_col_letter}{start_row + 1}:{capacity_col_letter}{end_row + 1})"
+        capacity_formula = ""
+
     totals_row[1] = capacity_formula  # Add the formula to the Capacity column
 
     # Add SUM formulas for each day's column
@@ -109,10 +113,12 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
 
         # Create the SUM formula for the column
         if not is_last_group:
-            formula = f"=SUM({col_letter}{start_row + 1}:{col_letter}{end_row})"
+            # formula = f"=SUM({col_letter}{start_row + 1}:{col_letter}{end_row})"
+            formula = ""
             totals_row.append(formula)
         else:
-            formula = f"=SUM({col_letter}{start_row + 1}:{col_letter}{end_row + 1})"
+            # formula = f"=SUM({col_letter}{start_row + 1}:{col_letter}{end_row + 1})"
+            formula = ""
             totals_row.append(formula)
 
     # Insert the "Totals" row
@@ -136,10 +142,12 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
 
         # Create the occupancy percentage formula for the column
         if not is_last_group:
-            formula = f"=({col_letter}{end_row + 1}/{capacity_col_letter}{end_row + 1})"
+            # formula = f"=({col_letter}{end_row + 1}/{capacity_col_letter}{end_row + 1})"
+            formula = ""
             occupancy_row.append(formula)
         else:
-            formula = f"=({col_letter}{end_row + 2}/{capacity_col_letter}{end_row + 2})"
+            # formula = f"=({col_letter}{end_row + 2}/{capacity_col_letter}{end_row + 2})"
+            formula = ""
             occupancy_row.append(formula)
 
     # Insert the "Πληρότητα" row
@@ -191,7 +199,9 @@ def per_zone_stage4(input_file, output_file):
             start_col = get_column_letter(3)  # Column C (first date column)
             end_col = get_column_letter(sum_col_index)  # Last date column
             # Add the SUM formula for the row
-            df.at[index, sum_col_index] = f"=SUM({start_col}{index + 1}:{end_col}{index + 1})"
+            # formula = f"=SUM({start_col}{index + 1}:{end_col}{index + 1})"
+            formula = ""
+            df.at[index, sum_col_index] = formula
 
     # Save the updated DataFrame to a new Excel file
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
