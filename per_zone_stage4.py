@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Font, Border, Side
@@ -47,7 +49,9 @@ THIN_BORDER = Border(left=Side(style='thin'), right=Side(style='thin'),
 def detect_groups(df):
     """Detect groups based on empty rows."""
     groups = []
-    current_group = {"start_row": None, "types": []}
+    current_group = {"start_row": None, "types": [],  "name": ""}
+    first_group = True
+    second_group = True
 
     # Start from row 2 (index 1) to skip the header
     for index, row in df.iloc[1:].iterrows():
@@ -56,8 +60,15 @@ def detect_groups(df):
             # If a group has been started, finalize it
             if current_group["start_row"] is not None:
                 current_group["end_row"] = index + 1  # Excel rows are 1-based
+                if first_group:
+                    current_group["name"] = "Accommodations"
+                    first_group = False
+                    second_group = True
+                elif second_group:
+                    current_group["name"] = "Youth Hostel"
+                    second_group = False
                 groups.append(current_group)
-                current_group = {"start_row": None, "types": []}
+                current_group = {"start_row": None, "types": [], "name": ""}
         else:
             # If no group has been started, start a new one
             if current_group["start_row"] is None:
@@ -68,6 +79,7 @@ def detect_groups(df):
     # Add the last group if it exists
     if current_group["start_row"] is not None:
         current_group["end_row"] = len(df)
+        current_group["name"] = "Camping"
         groups.append(current_group)
 
     return groups
@@ -77,9 +89,10 @@ def add_totals_and_occupancy_rows(df, group, is_last_group=False):
     """Add 'Totals' and 'Πληρότητα' rows with Excel formulas."""
     start_row = group["start_row"] - 1  # Convert to 0-based index
     end_row = group["end_row"] - 1  # Convert to 0-based index
+    current_year = datetime.now().year
 
     # Create a "Totals" row
-    totals_row = ["Totals", ""]  # Initialize with "Totals" and empty capacity
+    totals_row = [f'Total {group["name"]} {current_year}', ""]  # Initialize with "Totals" and empty capacity
 
     # Add SUM formula for the Capacity column (column B)
     capacity_col_letter = get_column_letter(2)  # Column B

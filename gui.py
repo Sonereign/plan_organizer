@@ -1,5 +1,7 @@
 import tkinter as tk
 import threading
+from datetime import datetime
+
 from file_handler import select_file
 from processing import process_files
 from logger import logger
@@ -86,7 +88,8 @@ class PlanoKratiseonApp:
         return text_widget
 
     def add_previous_year(self):
-        year = 2024 - len(self.previous_years_paths)
+        current_year = datetime.now().year
+        year = current_year - 1 - len(self.previous_years_paths)
         frame = tk.Frame(self.previous_years_frame, bg="#f0f0f0")
         frame.pack(fill="x", pady=2)
 

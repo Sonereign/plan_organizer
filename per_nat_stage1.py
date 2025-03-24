@@ -261,10 +261,11 @@ def add_monthly_sums(ws, max_row, total_column, separator_column_2, total_rooms_
     """Add monthly sum columns and calculate their sums."""
     month_ranges = find_monthly_column_ranges(ws, total_column)
     month_start_col = separator_column_2 + 1  # Start after the second separator
+    current_year = datetime.now().year
 
     for i, month in enumerate(MONTHS):
         month_col = month_start_col + i
-        ws.cell(row=1, column=month_col).value = f"{month} 2025"
+        ws.cell(row=1, column=month_col).value = f"{month} {current_year}"
         ws.cell(row=1, column=month_col).font = Font(bold=True)
         ws.column_dimensions[ws.cell(row=1, column=month_col).column_letter].width = 12
 
@@ -284,11 +285,11 @@ def add_monthly_sums_direct_noform(ws, max_row, total_column, separator_column_2
     """Directly calculate monthly sums and insert them into the columns."""
     month_ranges = find_monthly_column_ranges(ws, total_column)
     month_start_col = separator_column_2 + 1  # Start after the second separator
-
+    current_year = datetime.now().year
 
     for i, month in enumerate(MONTHS):
         month_col = month_start_col + i
-        ws.cell(row=1, column=month_col).value = f"{month} 2025"
+        ws.cell(row=1, column=month_col).value = f"{month} {current_year}"
         ws.cell(row=1, column=month_col).font = Font(bold=True)
         ws.column_dimensions[ws.cell(row=1, column=month_col).column_letter].width = 12
 
