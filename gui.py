@@ -18,9 +18,31 @@ class PlanoKratiseonApp:
         self.availability_per_zone_path = None
         self.availability_per_type_path = None
         self.availability_per_nationality_path = None
-        self.previous_years_paths = {}
-
+        self.previous_years_nat_paths = {}
+        self.previous_years_zone_paths = {}  # New dictionary for zone years
         self.create_widgets()
+
+    def add_previous_zone_year(self):
+        current_year = datetime.now().year
+        year = current_year - 1 - len(self.previous_years_zone_paths)
+
+        frame = tk.Frame(self.zone_previous_years_frame, bg="#f0f0f0")
+        frame.pack(fill="x", pady=2)
+
+        label = tk.Label(frame, text=f"Zone Year {year}", font=("Arial", 12), bg="#f0f0f0")
+        label.pack(side="left", padx=5)
+
+        text_widget = tk.Entry(frame, width=35, font=("Arial", 10))
+        text_widget.pack(side="left", padx=5, pady=5)
+
+        button = tk.Button(
+            frame, text="Browse",
+            command=lambda: select_file(f"Availability Per Zone (Previous Year)", text_widget, self),
+            font=("Arial", 10), bg="#008CBA", fg="white"
+        )
+        button.pack(side="right", padx=5)
+
+        self.previous_years_zone_paths[year] = text_widget
 
     def create_widgets(self):
         title_label = tk.Label(self.root, text="Πλάνο Κρατήσεων", font=("Arial", 18, "bold"), bg="#f0f0f0")
@@ -29,11 +51,23 @@ class PlanoKratiseonApp:
         file_frame = tk.Frame(self.root, bg="#f0f0f0")
         file_frame.pack(pady=10, fill="x", padx=20)
 
-        # Availability Per Zone Frame
-        zone_frame = tk.LabelFrame(file_frame, text="Availability Per Zone", font=("Arial", 12, "bold"), bg="#f0f0f0",
-                                   padx=10, pady=10)
+        # Zone Frame modifications
+        zone_frame = tk.LabelFrame(file_frame, text="Availability Per Zone",
+                                   font=("Arial", 12, "bold"), bg="#f0f0f0", padx=10, pady=10)
         zone_frame.pack(fill="x", pady=5)
+
+        # Current year zone file
         self.availability_per_zone_text = self.create_file_section(zone_frame, "Availability Per Zone")
+
+        # Previous years zone files
+        self.zone_previous_years_frame = tk.Frame(zone_frame, bg="#f0f0f0")
+        self.zone_previous_years_frame.pack(fill="x", pady=5)
+
+        add_zone_year_button = tk.Button(
+            zone_frame, text="+ Add Previous Year", command=self.add_previous_zone_year,
+            font=("Arial", 10), bg="#008CBA", fg="white"
+        )
+        add_zone_year_button.pack(pady=5)
 
         # Availability Per Type Frame
         type_frame = tk.LabelFrame(file_frame, text="Availability Per Type", font=("Arial", 12, "bold"), bg="#f0f0f0",
@@ -89,7 +123,7 @@ class PlanoKratiseonApp:
 
     def add_previous_year(self):
         current_year = datetime.now().year
-        year = current_year - 1 - len(self.previous_years_paths)
+        year = current_year - 1 - len(self.previous_years_nat_paths)
         frame = tk.Frame(self.previous_years_frame, bg="#f0f0f0")
         frame.pack(fill="x", pady=2)
 
@@ -105,7 +139,7 @@ class PlanoKratiseonApp:
         )
         button.pack(side="right", padx=5)
 
-        self.previous_years_paths[year] = text_widget
+        self.previous_years_nat_paths[year] = text_widget
 
     def start_processing(self):
         self.process_button.config(state=tk.DISABLED)

@@ -305,7 +305,7 @@ def calculate_and_print_date_differences(stage4_start, stage4_end, stage5_files)
 
     return results
 
-def process_stage6(input_file, stage5_files, output_file):
+def per_zone_stage6(input_file, stage5_files, output_file):
     # Load the Stage 4 file
     stage4_df = load_stage4(input_file)
     stage4_start, stage4_end = detect_date_range(input_file, stage4_df)
@@ -376,4 +376,4 @@ if __name__ == "__main__":
     INPUT_FILE = "per_zone_stage4_output.xlsx"
     STAGE5_FILES = ["per_zone_stage5_output_2024.xlsx", "per_zone_stage5_output_2023.xlsx"]
     OUTPUT_FILE = "per_zone_stage6_output.xlsx"
-    process_stage6(INPUT_FILE, STAGE5_FILES, OUTPUT_FILE)
+    per_zone_stage6(INPUT_FILE, STAGE5_FILES, OUTPUT_FILE)

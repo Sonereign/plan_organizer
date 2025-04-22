@@ -2,6 +2,7 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font, Border, Alignment
 from logger import logger
 
+
 def load_stage5_data(stage5_file):
     wb5 = openpyxl.load_workbook(stage5_file)
     ws5 = wb5.active
@@ -27,29 +28,41 @@ def insert_separator_column(ws5, max_col):
     return max_col
 
 
-def insert_country_row(ws5, country, countries_stage5, empty_row):
+def insert_country_row(ws5, country, countries_stage5):
+    total_rooms_row = countries_stage5.get("Total Rooms", ws5.max_row + 1)
+    total_camping_row = countries_stage5.get("Total Camping", ws5.max_row + 1)
+
+    # Determine where the country should go
+    if "Camping" in country:
+        insert_before = total_camping_row  # Camping nationalities should be before "Total Camping"
+    else:
+        insert_before = total_rooms_row  # Room nationalities should be before "Total Rooms"
+
+    # Find the correct insertion point
     target_row = None
-    sorted_countries = sorted((c, r) for c, r in countries_stage5.items() if c is not None)
+    sorted_countries = sorted((c, r) for c, r in countries_stage5.items() if c and "Total" not in c)
 
     for existing_country, row in sorted_countries:
-        if row == empty_row:
-            continue  # Skip empty row
-        if existing_country is not None and country < existing_country:
+        if row >= insert_before:
+            break
+        if existing_country and country < existing_country:
             target_row = row
             break
 
     if target_row is None:
-        target_row = ws5.max_row + 1
+        target_row = insert_before  # Default to inserting above "Total Rooms" or "Total Camping"
 
     ws5.insert_rows(target_row)
     ws5.cell(row=target_row, column=1, value=country)
 
-    # Recalculate row indexes to maintain consistency
-    countries_stage5.clear()
+    # Recalculate index mapping
+    new_mapping = {}
     for row in range(2, ws5.max_row + 1):
         cell_value = ws5.cell(row=row, column=1).value
         if cell_value:
-            countries_stage5[cell_value] = row
+            new_mapping[cell_value] = row
+    countries_stage5.clear()
+    countries_stage5.update(new_mapping)
 
     return target_row
 
@@ -114,10 +127,12 @@ def append_stage6_to_stage5(stage5_file, stage6_files, output_file):
             # Find or insert the country row in Stage 5
             if first_file_processed:
                 # After the first file, use the first empty row
-                target_row = countries_stage5.get(country) or insert_country_row(ws5, country, countries_stage5, empty_row)
+                target_row = countries_stage5.get(country) or insert_country_row(ws5, country, countries_stage5,
+                                                                                 )
             else:
                 # In the first file, proceed as before (insert based on the existing order)
-                target_row = countries_stage5.get(country) or insert_country_row(ws5, country, countries_stage5, empty_row)
+                target_row = countries_stage5.get(country) or insert_country_row(ws5, country, countries_stage5,
+                                                                                 )
 
             # Copy the values and styles from Stage 6 to Stage 5
             for col in range(1, ws6.max_column + 1):
@@ -152,7 +167,8 @@ def per_nat_stage3(stage5_path, stage6_paths, output_path):
 
 if __name__ == '__main__':
     stage5_path = "per_nat_stage1_output.xlsx"
-    stage6_paths = ["per_nat_stage2_output_2024.xlsx", "per_nat_stage2_output_2023.xlsx",]  # Add all Stage 6 files here
+    stage6_paths = ["per_nat_stage2_output_2024.xlsx",
+                    "per_nat_stage2_output_2023.xlsx", ]  # Add all Stage 6 files here
     output_path = "per_nat_stage3_output.xlsx"
 
     append_stage6_to_stage5(stage5_path, stage6_paths, output_path)

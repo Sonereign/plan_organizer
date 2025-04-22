@@ -291,7 +291,7 @@ def apply_styling(ws):
     logger.info("✓ Styling applied successfully")
 
 
-def process_stage7(input_file, output_file):
+def per_zone_stage7(input_file, output_file):
     """Main processing function for stage 7"""
     logger.info("🚀 Starting Stage 7 processing...")
 
@@ -340,4 +340,4 @@ if __name__ == "__main__":
     OUTPUT_FILE = 'per_zone_stage7_output.xlsx'
 
     # Run the processing
-    process_stage7(INPUT_FILE, OUTPUT_FILE)
+    per_zone_stage7(INPUT_FILE, OUTPUT_FILE)

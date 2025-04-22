@@ -22,8 +22,8 @@ THIN_BORDER = Border(left=Side(style='thin'), right=Side(style='thin'),
                      top=Side(style='thin'), bottom=Side(style='thin'))
 
 MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-USE_FORMULAS = False
-DO_CALCULATIONS = False
+USE_FORMULAS = True
+DO_CALCULATIONS = True
 
 
 def load_and_prepare_data(input_file):
@@ -389,7 +389,7 @@ def apply_excel_formatting_and_formulas(output_file):
     wb.save(output_file)
 
 
-def per_nat_stage1(input_file, output_file):
+def per_nat_stage1_finalizer(input_file, output_file):
     """Process reservations and generate the output Excel file."""
     logger.info("#######################################################")
     logger.info(f"Running Per Nationality Stage 1 with {input_file=} .....")
@@ -405,7 +405,7 @@ def per_nat_stage1(input_file, output_file):
 if __name__ == "__main__":
     # Default file paths (for standalone execution)
     INPUT_FILE = "./sources/availabilityPerNationality2025.xls"
-    OUTPUT_FILE = "per_nat_stage1_output.xlsx"
+    OUTPUT_FILE = "per_nat_stage1_finalizer_output.xlsx"
 
     # Run stage5
-    per_nat_stage1(INPUT_FILE, OUTPUT_FILE)
+    per_nat_stage1_finalizer(INPUT_FILE, OUTPUT_FILE)

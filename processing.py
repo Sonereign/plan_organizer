@@ -1,4 +1,5 @@
 import os
+import traceback
 from copy import copy
 from datetime import datetime
 from tkinter import messagebox
@@ -8,10 +9,15 @@ from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.reader.excel import load_workbook
 from openpyxl.utils import get_column_letter
 
+import per_zone_stage6
+from per_nat_stage1_finalizer import per_nat_stage1_finalizer
 from per_zone_stage1 import per_zone_stage1
 from per_zone_stage2 import per_zone_stage2
 from per_zone_stage3 import per_zone_stage3
 from per_zone_stage4 import per_zone_stage4
+from per_zone_stage4_finalizer import per_zone_stage4_finalizer
+from per_zone_stage5 import per_zone_per_type_stage5_previous_years
+from per_zone_stage6 import per_zone_stage6
 from per_nat_stage1 import per_nat_stage1
 from per_nat_stage2 import per_nat_stage2
 from per_nat_stage3 import per_nat_stage3
@@ -19,6 +25,7 @@ from per_nat_stage4 import per_nat_stage4
 from per_nat_stage5 import per_nat_stage5
 from per_nat_stage6 import per_nat_stage6
 from logger import logger
+from per_zone_stage7 import per_zone_stage7
 
 
 def process_files(app):
@@ -29,79 +36,195 @@ def process_files(app):
         sheet1_name = f"{today}-πληρότητα-units"
         sheet2_name = "εθνικότητες"
 
+        full_zone = False
+        no_zone = False
+
         per_zone_stage1_output = "per_zone_stage1_output.xlsx"
         per_zone_stage2_output = "per_zone_stage2_output.xlsx"
         per_zone_stage3_output = "per_zone_stage3_output.xlsx"
         per_zone_stage4_output = "per_zone_stage4_output.xlsx"
+        per_zone_stage4_finalizer_output = "per_zone_stage4_finalizer_output.xlsx"
+        per_zone_stage5_output_filenames = []
+        per_zone_stage6_output = "per_zone_stage6_output.xlsx"
+        per_zone_stage7_output = "per_zone_stage7_output.xlsx"
+
         per_nat_stage1_output = "per_nat_stage1_output.xlsx"
+        per_nat_stage1_finalizer_output = "per_nat_stage1_finalizer_output.xlsx"
         per_nat_stage2_output_filenames = []
         per_nat_stage3_output = "per_nat_stage3_output.xlsx"
         per_nat_stage4_output = "per_nat_stage4_output.xlsx"
         per_nat_stage5_output = "per_nat_stage5_output.xlsx"
         per_nat_stage6_output = "per_nat_stage6_output.xlsx"
 
-        per_zone_stage1(app.availability_per_zone_path, per_zone_stage1_output)
-        per_zone_stage2(per_zone_stage1_output, app.availability_per_type_path, per_zone_stage2_output)
-        per_zone_stage3(per_zone_stage2_output, per_zone_stage3_output)
-        per_zone_stage4(per_zone_stage3_output, per_zone_stage4_output)
-
-        # Run stage5 if nationality file is provided
-        if app.availability_per_nationality_path:
-            per_nat_stage1(app.availability_per_nationality_path, per_nat_stage1_output)
-
-        # Run Stage 6 for previous years
-        for year, file_path in app.previous_years_paths.items():
-            output_file = f"per_nat_stage2_output_{year}.xlsx"
-            per_nat_stage2_output_filenames.append(output_file)  # Append file name to list
-            per_nat_stage2(input_file=file_path, output_file=output_file, year=year)
-
-        previous_years = list(app.previous_years_paths.keys())  # Extract years from dictionary keys
-        number_of_previous_year_data = len(per_nat_stage2_output_filenames)
-
-        if not per_nat_stage2_output_filenames:
-            # Create final output by combining sheets from stage4 and stage5 outputs
-            combine_sheets(per_zone_stage4=per_zone_stage4_output, per_nat_stage1=per_nat_stage1_output, final_output=final_output,
-                           sheet1_name=sheet1_name, sheet2_name=sheet2_name, app=app)
+        if app.availability_per_type_path is None and app.availability_per_zone_path is None and app.availability_per_nationality_path is None:
+            app.status_label.config(
+                text="You know, sometimes you need to put some effort as well.. Please give me the paths to the files.")
+            messagebox.showerror("ER0R!1!1 S0S",
+                                 f"Αγαπητέ Λεωνίδα, θα κάνω οτι δεν είδα οτι ξέχασες να επιλέξεις αρχεία..")
+            return
+        if app.availability_per_zone_path is None or app.availability_per_type_path is None:
+            app.status_label.config(
+                text="Availability Per Zone will not be processed on this session because the \npath for Availability per Zone or Availability per Type is empty.")
+            messagebox.showwarning("Warning",
+                                   f"Availability Per Zone will not be processed on this session because the path for Availability per Zone or Availability per Type is empty.")
+            no_zone = True
         else:
-            # Create final output by combining sheets from stage4 and stage10 outputs
-            per_nat_stage3(per_nat_stage1_output, per_nat_stage2_output_filenames, per_nat_stage3_output)
-            per_nat_stage4(per_nat_stage3_output, per_nat_stage4_output, previous_years, number_of_previous_year_data)
-            per_nat_stage5(per_nat_stage4_output, per_nat_stage5_output, previous_years)
-            per_nat_stage6(per_nat_stage5_output, per_nat_stage6_output, previous_years)
-            combine_sheets(per_zone_stage4_output, per_nat_stage6_output, final_output, sheet1_name, sheet2_name, app=app)
+            per_zone_stage1(app.availability_per_zone_path, per_zone_stage1_output)
+            per_zone_stage2(per_zone_stage1_output, app.availability_per_type_path, per_zone_stage2_output)
+            per_zone_stage3(per_zone_stage2_output, per_zone_stage3_output)
+            per_zone_stage4(per_zone_stage3_output, per_zone_stage4_output)
 
-        app.status_label.config(text="Processing complete!")
-        messagebox.showinfo("Success", f"Final output saved as {final_output}")
+            # Run per_zone_stage5 for previous years
+            for year, file_path in app.previous_years_zone_paths.items():
+                output_file = f"per_zone_stage5_output_{year}.xlsx"
+                per_zone_stage5_output_filenames.append(output_file)  # Append file name to list
+                per_zone_per_type_stage5_previous_years(input_file=file_path, output_file=output_file, year=year)
+
+            if not per_zone_stage5_output_filenames:
+                """Calculate results for per_zone_stage4_finalizer_output without previous years"""
+                per_zone_stage4_finalizer(per_zone_stage3_output, per_zone_stage4_finalizer_output)
+            else:
+                """Process previous years zone files"""
+                per_zone_stage6(per_zone_stage4_output, per_zone_stage5_output_filenames, per_zone_stage6_output)
+                per_zone_stage7(per_zone_stage6_output, per_zone_stage7_output)
+                full_zone = True
+
+        # Run per_nat_stage1 if nationality file is provided
+        if app.availability_per_nationality_path:
+            # Run per_nat_stage2 for previous years
+            for year, file_path in app.previous_years_nat_paths.items():
+                output_file = f"per_nat_stage2_output_{year}.xlsx"
+                per_nat_stage2_output_filenames.append(output_file)  # Append file name to list
+                per_nat_stage2(input_file=file_path, output_file=output_file, year=year)
+
+            if not per_nat_stage2_output_filenames:
+                per_nat_stage1_finalizer(app.availability_per_nationality_path, per_nat_stage1_finalizer_output)
+
+                if no_zone:
+                    """No zone data will be computed, only availabilityPerNationality"""
+                    app.status_label.config(
+                        text="COME FROM THIS SIDE SIIIIIIIIIIIIIIIR!!!.")
+                    messagebox.showwarning("Warning",
+                                           f"The developer was too lazy to allow you process only perNationality, you're getting nothing.\nUncheck Enable Cleanup and open per_nat_stage1_finalizer_output.xlsx")
+                else:
+                    if full_zone:
+                        """Combine per_nat_stage1_finalizer_output.xlsx with per_zone_stage7_output.xlsx"""
+                        combine_sheets(per_zone_final_file=per_zone_stage7_output,
+                                       per_nat_final_file=per_nat_stage1_finalizer_output,
+                                       final_output_name=final_output,
+                                       sheet1_name=sheet1_name, sheet2_name=sheet2_name, app=app)
+                        app.status_label.config(
+                            text="Processing complete! Plan has per_zone prev year data and current year nationality data.")
+                        messagebox.showinfo("Success",
+                                            f"Plan has per_zone prev year data and current year per_nat data.\nFinal output saved as {final_output}")
+                    else:
+                        """Combine per_nat_stage1_finalizer_output.xlsx with per_zone_stage4_finalizer_output.xlsx"""
+                        combine_sheets(per_zone_final_file=per_zone_stage4_finalizer_output,
+                                       per_nat_final_file=per_nat_stage1_finalizer_output,
+                                       final_output_name=final_output,
+                                       sheet1_name=sheet1_name, sheet2_name=sheet2_name, app=app)
+                        app.status_label.config(
+                            text="Processing complete! Plan has data only for current year per_zone and per_nat.")
+                        messagebox.showinfo("Success",
+                                            f"Plan has data only for current year per_zone and per_nat.\nFinal output saved as {final_output}")
+            else:
+                # Create final output by combining sheets from stage4 and stage10 outputs
+                per_nat_stage1(app.availability_per_nationality_path, per_nat_stage1_output)
+
+                nat_previous_years = list(app.previous_years_nat_paths.keys())  # Extract years from dictionary keys
+                nat_number_of_previous_year_data = len(per_nat_stage2_output_filenames)
+
+                per_nat_stage3(per_nat_stage1_output, per_nat_stage2_output_filenames, per_nat_stage3_output)
+                per_nat_stage4(per_nat_stage3_output, per_nat_stage4_output, nat_previous_years,
+                               nat_number_of_previous_year_data)
+                per_nat_stage5(per_nat_stage4_output, per_nat_stage5_output, nat_previous_years)
+                per_nat_stage6(per_nat_stage5_output, per_nat_stage6_output, nat_previous_years)
+
+                if full_zone:
+                    """We need to merge per_zone_stage7 and per_nat_stage6"""
+                    combine_sheets(per_zone_stage7_output, per_nat_stage6_output, final_output, sheet1_name,
+                                   sheet2_name, app=app)
+                    app.status_label.config(
+                        text="Processing complete! Plan has prev_year_data for both per_zone and per_nat.\n")
+                    messagebox.showinfo("Success",
+                                        f"Plan has prev_year_data for both per_zone and per_nat.\nFinal output saved as {final_output}")
+                else:
+                    """We need to make calculations for per_zone_stage4_finalizer_output and then combine with per_nat_stage6"""
+                    combine_sheets(per_zone_stage4_finalizer_output, per_nat_stage6_output, final_output, sheet1_name,
+                                   sheet2_name, app=app)
+                    app.status_label.config(
+                        text="Processing complete! Plan has prev year data for per_nat but current year data for per_zone.\n")
+                    messagebox.showinfo("Success",
+                                        f"Plan has prev year data for per_nat but current year data for per_zone.\nFinal output saved as {final_output}")
+        else:
+            logger.info(f'No path given for Nationality current year, no need to combine, just pack zones')
+            if full_zone:
+                """We need just to rename the stage7 output to date_availabilityPerZone.xlsx"""
+                combine_sheets(per_zone_final_file=per_zone_stage7_output,
+                               per_nat_final_file=None,
+                               final_output_name=f"{today}_availabilityPerZone&PreviousYears.xlsx",
+                               sheet1_name=sheet1_name, sheet2_name=None, app=app)
+                app.status_label.config(
+                    text="Processing complete! Plan has only per_zone and prev years data.\n")
+                messagebox.showinfo("Success",
+                                    f"Plan has only per_zone and prev years data.\nFinal output saved as {final_output}")
+            else:
+                """We need to make calculations on per_zone_stage4 and have an output date_availabilityPerZone.xlsx"""
+                combine_sheets(per_zone_final_file=per_zone_stage4_finalizer_output,
+                               per_nat_final_file=None,
+                               final_output_name=f"{today}_availabilityPerZone.xlsx",
+                               sheet1_name=sheet1_name, sheet2_name=None, app=app)
+                app.status_label.config(
+                    text="Processing complete! Plan has only per_zone current year data.\n")
+                messagebox.showinfo("Success",
+                                    f"Plan has only per_zone current year data.\nFinal output saved as {final_output}")
+
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e} {traceback.format_exc()}")
     finally:
         app.process_button.config(state="normal")
         if app.cleanup_var:
             # Clean up temporary files
-            for file in [per_zone_stage1_output, per_zone_stage2_output, per_zone_stage3_output, per_zone_stage4_output, per_nat_stage1_output, per_nat_stage3_output,
-                         per_nat_stage4_output, per_nat_stage5_output, per_nat_stage6_output]:
+            for file in [per_zone_stage1_output,
+                         per_zone_stage2_output,
+                         per_zone_stage3_output,
+                         per_zone_stage4_output,
+                         per_zone_stage4_finalizer_output,
+                         per_zone_stage6_output,
+                         per_zone_stage7_output,
+                         per_nat_stage1_output,
+                         per_nat_stage1_finalizer_output,
+                         per_nat_stage3_output,
+                         per_nat_stage4_output,
+                         per_nat_stage5_output,
+                         per_nat_stage6_output ]:
                 if os.path.exists(file):
                     os.remove(file)
             for file in per_nat_stage2_output_filenames:
                 if os.path.exists(file):
                     os.remove(file)
+            for file in per_zone_stage5_output_filenames:
+                if os.path.exists(file):
+                    os.remove(file)
 
-
-def combine_sheets(per_zone_stage4, per_nat_stage1, final_output, sheet1_name, sheet2_name, app):
+def combine_sheets(per_zone_final_file, per_nat_final_file, final_output_name, sheet1_name, sheet2_name, app):
     """Combine sheets from stage4 and stage5 outputs into a single Excel file."""
     # Load workbooks
-    wb_stage4 = load_workbook(per_zone_stage4)
-    wb_stage5 = load_workbook(per_nat_stage1) if app.availability_per_nationality_path else None
+    wb_stage5 = None
+
+    if per_nat_final_file is not None:
+        wb_stage5 = load_workbook(per_nat_final_file) if app.availability_per_nationality_path else None
 
     # Create a new workbook for the final output
-    wb_final = load_workbook(per_zone_stage4)  # Start with a copy of stage4 output
+    wb_final = load_workbook(per_zone_final_file)
 
     # Rename the sheet from stage4 to the custom sheet1 name
     sheet_stage4 = wb_final.active
     sheet_stage4.title = sheet1_name
 
     # Add sheet from stage5 if available
-    if wb_stage5:
+    if wb_stage5 is not None:
         sheet_stage5 = wb_stage5.active
         # Create a new sheet in the final workbook for Stage5 Results
         new_sheet_stage5 = wb_final.create_sheet(sheet2_name)
@@ -121,8 +244,9 @@ def combine_sheets(per_zone_stage4, per_nat_stage1, final_output, sheet1_name, s
                     new_cell.alignment = copy(cell.alignment)  # Use copy function
 
     # Save the final workbook
-    wb_final.save(final_output)
-    apply_conditional_formatting(final_output)
+    wb_final.save(final_output_name)
+    if wb_stage5 is not None:
+        apply_conditional_formatting(final_output_name)
 
 
 def apply_conditional_formatting(file_path):

@@ -8,10 +8,13 @@ def select_file(file_description, text_widget, app):
 
         if file_description == "Availability Per Zone":
             app.availability_per_zone_path = file_path
+        elif file_description == "Availability Per Zone (Previous Year)":
+            year = int(text_widget.master.winfo_children()[0].cget("text").split()[-1])
+            app.previous_years_zone_paths[year] = file_path
         elif file_description == "Availability Per Type":
             app.availability_per_type_path = file_path
         elif file_description == "Current Year":
             app.availability_per_nationality_path = file_path
         elif "Year" in file_description:
             year = int(file_description.split()[1])
-            app.previous_years_paths[year] = file_path
+            app.previous_years_nat_paths[year] = file_path
